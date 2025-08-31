@@ -4,10 +4,10 @@ npm-debug.log
 .gitignore
 README.md
 .env
+.env.example
 .nyc_output
 coverage
-.Dockerfile
-dist
 .vscode
 .DS_Store
 *.log
+deploy.sh

@@ -4,20 +4,20 @@ FROM node:18-alpine
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy package files
+# Copy package files first for better Docker layer caching
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN npm ci --only=production
+# Install ALL dependencies (including dev dependencies for building)
+RUN npm ci
 
 # Copy source code
 COPY . .
 
-# Install all dependencies (including dev) for building
-RUN npm ci
-
 # Build the application
 RUN npm run build
+
+# Verify the build output exists
+RUN ls -la dist/
 
 # Remove dev dependencies to reduce image size
 RUN npm ci --only=production && npm cache clean --force
@@ -35,6 +35,20 @@ EXPOSE 8080
 
 # Set environment variables
 ENV NODE_ENV=production
+ENV PORT=8080
 
-# Start the application
-CMD ["npm", "start"]
+# Install curl for health checks
+USER root
+RUN apk add --no-cache curl
+USER nodejs
+
+# Copy and make start script executable
+COPY --chown=nodejs:nodejs start.sh ./
+RUN chmod +x start.sh
+
+# Health check to ensure the server is running
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:8080/ || exit 1
+
+# Start the application using our custom script
+CMD ["./start.sh"]

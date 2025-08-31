@@ -39,7 +39,17 @@ steps:
       'managed',
       '--allow-unauthenticated',
       '--port',
-      '8080'
+      '8080',
+      '--memory',
+      '512Mi',
+      '--cpu',
+      '1000m',
+      '--timeout',
+      '300s',
+      '--max-instances',
+      '10',
+      '--set-env-vars',
+      'NODE_ENV=production'
     ]
 
 images:
