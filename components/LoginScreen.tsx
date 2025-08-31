@@ -8,11 +8,12 @@ interface LoginScreenProps {
   onPatLogin: (pat: string) => void;
   onGcloudTokenLogin: (token: string) => void;
   onHostedOAuthLogin: (provider: AuthProvider) => void;
+  isLoading: boolean;
 }
 
 const getRedirectUri = () => window.location.origin + window.location.pathname;
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onGcloudTokenLogin, onHostedOAuthLogin }) => {
+const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onGcloudTokenLogin, onHostedOAuthLogin, isLoading }) => {
   const [githubClientId, setGithubClientId] = useState('');
   const [githubClientSecret, setGithubClientSecret] = useState('');
   const [googleClientId, setGoogleClientId] = useState('');
@@ -98,7 +99,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
               <div className="mt-6">
                 <button
                   onClick={() => onOAuthLogin('github', githubClientId, githubClientSecret)}
-                  disabled={!githubClientId || !githubClientSecret}
+                  disabled={!githubClientId || !githubClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
                 >
                   <GithubIcon className="h-5 w-5 mr-2"/>
@@ -130,7 +131,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                 <div className="mt-6">
                   <button
                     onClick={() => onPatLogin(pat)}
-                    disabled={!pat}
+                    disabled={!pat || isLoading}
                     className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
                   >
                     <GithubIcon className="h-5 w-5 mr-2" />
@@ -149,6 +150,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                 <div className="mt-6">
                   <button
                     onClick={() => onHostedOAuthLogin('github')}
+                    disabled={isLoading}
                     className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                   >
                     <GithubIcon className="h-5 w-5 mr-2" />
@@ -215,7 +217,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
               <div className="mt-6">
                 <button
                   onClick={() => onOAuthLogin('google', googleClientId, googleClientSecret)}
-                  disabled={!googleClientId || !googleClientSecret}
+                  disabled={!googleClientId || !googleClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
                 >
                   <GoogleIcon className="h-5 w-5 mr-2"/>
@@ -247,7 +249,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                 <div className="mt-6">
                   <button
                     onClick={() => onGcloudTokenLogin(gcloudToken)}
-                    disabled={!gcloudToken}
+                    disabled={!gcloudToken || isLoading}
                     className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
                   >
                     <GoogleIcon className="h-5 w-5 mr-2" />
@@ -266,6 +268,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                 <div className="mt-6">
                   <button
                     onClick={() => onHostedOAuthLogin('google')}
+                    disabled={isLoading}
                     className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                   >
                     <GoogleIcon className="h-5 w-5 mr-2" />

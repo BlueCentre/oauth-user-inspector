@@ -278,7 +278,7 @@ const App: React.FC = () => {
       );
     }
     
-    return <LoginScreen onOAuthLogin={handleOAuthLogin} onPatLogin={handlePatSubmit} onGcloudTokenLogin={handleGcloudTokenSubmit} onHostedOAuthLogin={handleHostedOAuthLogin} />;
+    return <LoginScreen onOAuthLogin={handleOAuthLogin} onPatLogin={handlePatSubmit} onGcloudTokenLogin={handleGcloudTokenSubmit} onHostedOAuthLogin={handleHostedOAuthLogin} isLoading={isLoading} />;
   }
 
   return (
