@@ -11,5 +11,5 @@
     "resolveJsonModule": true,
     "moduleResolution": "node"
   },
-  "include": ["server.ts"]
+  "include": ["server.ts", "logger.ts", "types/**/*"]
 }

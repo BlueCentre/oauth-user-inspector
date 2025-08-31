@@ -4,11 +4,13 @@
 // 1. Using standard ES module imports for all packages.
 // 2. Adding a polyfill for `__dirname` which is not present in ES modules.
 // 3. Using the correct `Request` and `Response` types from Express for route handlers.
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fetch, { RequestInit } from 'node-fetch';
 import { fileURLToPath, URLSearchParams } from 'url';
 import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import logger, { createRequestLogger, logTiming, logError } from './logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -17,15 +19,69 @@ const app = express();
 const port = parseInt(process.env.PORT || '8080', 10);
 
 // --- Middleware ---
+// Request ID and logging middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  req.id = req.headers['x-request-id'] as string || uuidv4();
+  res.setHeader('X-Request-ID', req.id);
+  
+  const reqLogger = createRequestLogger(req);
+  req.logger = reqLogger;
+  
+  reqLogger.info('Incoming request', {
+    method: req.method,
+    url: req.url,
+    query: req.query,
+    headers: {
+      'content-type': req.headers['content-type'],
+      'user-agent': req.headers['user-agent'],
+      'referer': req.headers.referer
+    }
+  });
+  
+  // Log response when finished
+  const originalSend = res.send;
+  res.send = function(data) {
+    reqLogger.info('Response sent', {
+      statusCode: res.statusCode,
+      statusMessage: res.statusMessage,
+      contentLength: data ? data.length : 0
+    });
+    return originalSend.call(this, data);
+  };
+  
+  next();
+});
+
 app.use(express.json());
 
 // --- API Routes ---
 // API routes are defined before static file serving.
 app.post('/api/oauth-token', async (req: Request, res: Response) => {
+  const reqLogger = req.logger || logger;
+  const endTimer = logTiming(reqLogger, 'oauth-token-exchange');
+  
   try {
     const { code, provider, clientId, clientSecret, redirectUri } = req.body;
 
+    reqLogger.info('OAuth token exchange initiated', {
+      provider,
+      hasCode: !!code,
+      hasClientId: !!clientId,
+      hasClientSecret: !!clientSecret,
+      hasRedirectUri: !!redirectUri,
+      redirectUri: redirectUri // Safe to log redirect URI
+    });
+
     if (!code || !provider || !clientId || !clientSecret || !redirectUri) {
+      reqLogger.warn('OAuth token exchange failed - missing parameters', {
+        missingFields: {
+          code: !code,
+          provider: !provider,
+          clientId: !clientId,
+          clientSecret: !clientSecret,
+          redirectUri: !redirectUri
+        }
+      });
       return res.status(400).json({ error: 'Missing required parameters in request body.' });
     }
 
@@ -63,14 +119,34 @@ app.post('/api/oauth-token', async (req: Request, res: Response) => {
       });
 
     } else {
+      reqLogger.warn('OAuth token exchange failed - unsupported provider', { provider });
       return res.status(400).json({ error: 'Unsupported provider.' });
     }
+
+    reqLogger.info('Making OAuth provider token request', {
+      provider,
+      tokenUrl,
+      method: fetchOptions.method
+    });
 
     const tokenResponse = await fetch(tokenUrl, fetchOptions);
     const responseText = await tokenResponse.text();
 
+    reqLogger.info('OAuth provider response received', {
+      provider,
+      statusCode: tokenResponse.status,
+      statusText: tokenResponse.statusText,
+      responseLength: responseText.length
+    });
+
     if (!tokenResponse.ok) {
-        console.error(`OAuth Error from ${provider}:`, responseText);
+        reqLogger.error('OAuth provider error response', {
+          provider,
+          statusCode: tokenResponse.status,
+          statusText: tokenResponse.statusText,
+          responseText: responseText.substring(0, 500) // Truncate long responses
+        });
+        
         try {
             const errorData = JSON.parse(responseText);
             return res.status(tokenResponse.status).json({
@@ -84,9 +160,24 @@ app.post('/api/oauth-token', async (req: Request, res: Response) => {
     }
     
     const tokenData = JSON.parse(responseText);
+    
+    reqLogger.info('OAuth token exchange successful', {
+      provider,
+      hasAccessToken: !!tokenData.access_token,
+      hasRefreshToken: !!tokenData.refresh_token,
+      tokenType: tokenData.token_type,
+      scope: tokenData.scope,
+      expiresIn: tokenData.expires_in
+    });
+    
+    endTimer();
     res.json(tokenData);
   } catch (error: any) {
-    console.error('Server Error in /api/oauth-token:', error);
+    logError(reqLogger, error, {
+      endpoint: '/api/oauth-token',
+      provider: req.body?.provider
+    });
+    endTimer();
     res.status(500).json({ error: 'Internal server error.', message: error.message });
   }
 });
@@ -99,25 +190,47 @@ const distDir = path.join(__dirname, '..', 'dist');
 const rootDir = path.join(__dirname, '..');
 
 // Log the directories for debugging
-console.log('__dirname:', __dirname);
-console.log('distDir:', distDir);
-console.log('rootDir:', rootDir);
+logger.info('Static file serving configuration', {
+  __dirname,
+  distDir,
+  rootDir,
+  paths: {
+    distIndex: path.join(distDir, 'index.html'),
+    rootIndex: path.join(rootDir, 'index.html'),
+    distAssets: path.join(distDir, 'assets')
+  }
+});
 
 // Check if files exist and their contents
-console.log('dist/index.html exists:', fs.existsSync(path.join(distDir, 'index.html')));
-console.log('root/index.html exists:', fs.existsSync(path.join(rootDir, 'index.html')));
+const distIndexExists = fs.existsSync(path.join(distDir, 'index.html'));
+const rootIndexExists = fs.existsSync(path.join(rootDir, 'index.html'));
+const distAssetsExists = fs.existsSync(path.join(distDir, 'assets'));
 
-// DEBUG: Show actual file contents
-if (fs.existsSync(path.join(distDir, 'index.html'))) {
-  console.log('=== DIST INDEX.HTML CONTENT ===');
-  console.log(fs.readFileSync(path.join(distDir, 'index.html'), 'utf8'));
-  console.log('=== END DIST CONTENT ===');
-}
+logger.info('File system check', {
+  files: {
+    'dist/index.html': distIndexExists,
+    'root/index.html': rootIndexExists,
+    'dist/assets': distAssetsExists
+  }
+});
 
-// DEBUG: List dist directory contents
-console.log('Contents of dist directory:', fs.readdirSync(distDir));
-if (fs.existsSync(path.join(distDir, 'assets'))) {
-  console.log('Contents of dist/assets directory:', fs.readdirSync(path.join(distDir, 'assets')));
+// Log directory contents
+try {
+  const distContents = fs.readdirSync(distDir);
+  logger.info('Directory contents', {
+    directory: 'dist',
+    contents: distContents
+  });
+  
+  if (distAssetsExists) {
+    const assetsContents = fs.readdirSync(path.join(distDir, 'assets'));
+    logger.info('Directory contents', {
+      directory: 'dist/assets',
+      contents: assetsContents
+    });
+  }
+} catch (error) {
+  logError(logger, error as Error, { context: 'directory-listing' });
 }
 
 // IMPORTANT: Only serve from dist directory to avoid serving wrong index.html
@@ -130,23 +243,49 @@ app.use(express.static(distDir, { index: false }));
 
 // The SPA fallback route sends 'index.html' for any GET request that doesn't match a static file.
 app.get('*', (req: Request, res: Response) => {
-  console.log('Fallback route for:', req.path);
+  const reqLogger = req.logger || logger;
+  
+  reqLogger.info('SPA fallback route triggered', {
+    path: req.path,
+    query: req.query,
+    referer: req.headers.referer
+  });
+  
   // Try dist/index.html first, then fallback to root index.html
   const distIndex = path.resolve(distDir, 'index.html');
   const rootIndex = path.resolve(rootDir, 'index.html');
   
   // Check if dist/index.html exists, if not use root index.html
   if (fs.existsSync(distIndex)) {
-    console.log('Serving index.html from dist directory');
+    reqLogger.info('Serving SPA index.html', {
+      source: 'dist',
+      file: distIndex
+    });
     res.sendFile(distIndex);
   } else {
-    console.log('Serving index.html from root directory');
+    reqLogger.info('Serving SPA index.html', {
+      source: 'root',
+      file: rootIndex,
+      reason: 'dist/index.html not found'
+    });
     res.sendFile(rootIndex);
   }
 });
 
 
 app.listen(port, '0.0.0.0', () => {
-  console.log(`Server listening on port ${port}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info('Server started successfully', {
+    port,
+    host: '0.0.0.0',
+    environment: process.env.NODE_ENV || 'development',
+    nodeVersion: process.version,
+    platform: process.platform,
+    memory: {
+      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
+      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+      heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+    },
+    uptime: process.uptime() + 's',
+    pid: process.pid
+  });
 });
