@@ -16,11 +16,15 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Backup and replace the root index.html with the built one
-RUN echo "Original index.html:" && head -5 index.html
-RUN echo "Built index.html:" && head -5 dist/index.html
-RUN mv index.html index.html.bak && cp dist/index.html index.html
-RUN echo "Replaced index.html:" && head -5 index.html
+# Show what we built
+RUN echo "=== BUILT FILES ===" && ls -la dist/ && echo "" && echo "Built index.html content:" && cat dist/index.html
+RUN echo "" && echo "=== ORIGINAL FILES ===" && echo "Original index.html content:" && cat index.html
+
+# COMPLETELY REPLACE the root index.html with the built version
+RUN rm -f index.html && cp dist/index.html index.html
+
+# Verify the replacement worked
+RUN echo "" && echo "=== FINAL VERIFICATION ===" && echo "Final index.html content:" && cat index.html
 
 # Verify the build output exists
 RUN ls -la dist/ && ls -la dist-server/
