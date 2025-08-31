@@ -148,35 +148,36 @@ const App: React.FC = () => {
     }
   }, [fetchUser]);
 
+  const handleAuthCallback = useCallback(async (code: string, state: string) => {
+    const isHosted = state.endsWith('-hosted');
+    const provider = (isHosted ? state.replace('-hosted', '') : state) as AuthProvider;
+    window.history.replaceState({}, document.title, window.location.pathname);
+    await exchangeCodeForToken(code, provider, isHosted);
+  }, [exchangeCodeForToken]);
+
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get('code');
-    const state = urlParams.get('state'); // Provider passed in state
-    
-    // Check for stored session first
+    const state = urlParams.get('state');
     const storedAuth = localStorage.getItem('auth_details');
 
     if (code && state) {
-        // Check if this is a hosted OAuth flow
-        const isHosted = state.endsWith('-hosted');
-        const provider = (isHosted ? state.replace('-hosted', '') : state) as AuthProvider;
-        window.history.replaceState({}, document.title, window.location.pathname);
-        exchangeCodeForToken(code, provider, isHosted);
+      handleAuthCallback(code, state);
     } else if (storedAuth) {
-        try {
-            const { token, provider } = JSON.parse(storedAuth);
-            if (token && provider) {
-                fetchUser(token, provider);
-            } else {
-                setIsLoading(false);
-            }
-        } catch {
-            setIsLoading(false);
+      try {
+        const { token, provider } = JSON.parse(storedAuth);
+        if (token && provider) {
+          fetchUser(token, provider);
+        } else {
+          setIsLoading(false);
         }
-    } else {
+      } catch {
         setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
     }
-  }, [exchangeCodeForToken, fetchUser]);
+  }, [handleAuthCallback, fetchUser]);
   
   const handleOAuthLogin = (provider: AuthProvider, clientId: string, clientSecret: string) => {
     if (!clientId || !clientSecret) {
