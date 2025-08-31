@@ -106,33 +106,39 @@ app.use(express.json());
 
 // --- API Routes ---
 // API routes are defined before static file serving.
-app.post('/api/oauth-token', async (req: Request, res: Response) => {
+app.post('/api/oauth/token', async (req: Request, res: Response) => {
   const reqLogger = req.logger || logger;
   const endTimer = logTiming(reqLogger, 'oauth-token-exchange');
-  
+
   try {
-    const { code, provider, clientId, clientSecret, redirectUri } = req.body;
+    const { code, provider, redirectUri, isHosted } = req.body;
+    let { clientId, clientSecret } = req.body;
 
     reqLogger.info('OAuth token exchange initiated', {
       provider,
+      isHosted,
       hasCode: !!code,
-      hasClientId: !!clientId,
-      hasClientSecret: !!clientSecret,
       hasRedirectUri: !!redirectUri,
-      redirectUri: redirectUri // Safe to log redirect URI
     });
 
-    if (!code || !provider || !clientId || !clientSecret || !redirectUri) {
-      reqLogger.warn('OAuth token exchange failed - missing parameters', {
-        missingFields: {
-          code: !code,
-          provider: !provider,
-          clientId: !clientId,
-          clientSecret: !clientSecret,
-          redirectUri: !redirectUri
-        }
-      });
-      return res.status(400).json({ error: 'Missing required parameters in request body.' });
+    if (!code || !provider || !redirectUri) {
+      reqLogger.warn('OAuth token exchange failed - missing base parameters');
+      return res.status(400).json({ error: 'Missing required parameters: code, provider, redirectUri.' });
+    }
+    
+    if (provider !== 'github' && provider !== 'google') {
+      reqLogger.warn('OAuth token exchange failed - unsupported provider', { provider });
+      return res.status(400).json({ error: 'Unsupported provider.' });
+    }
+
+    // If hosted, retrieve credentials from secret manager. Otherwise, require them in the body.
+    if (isHosted) {
+      const hostedCreds = await getHostedCredentials(provider);
+      clientId = hostedCreds.clientId;
+      clientSecret = hostedCreds.clientSecret;
+    } else if (!clientId || !clientSecret) {
+      reqLogger.warn('OAuth token exchange failed - missing client credentials for non-hosted flow');
+      return res.status(400).json({ error: 'Missing required parameters for non-hosted auth: clientId, clientSecret.' });
     }
 
     let tokenUrl: string;
@@ -167,9 +173,8 @@ app.post('/api/oauth-token', async (req: Request, res: Response) => {
         grant_type: 'authorization_code',
         redirect_uri: redirectUri,
       });
-
     } else {
-      reqLogger.warn('OAuth token exchange failed - unsupported provider', { provider });
+      // This case is already handled above, but kept for safety.
       return res.status(400).json({ error: 'Unsupported provider.' });
     }
 
@@ -185,22 +190,19 @@ app.post('/api/oauth-token', async (req: Request, res: Response) => {
     reqLogger.info('OAuth provider response received', {
       provider,
       statusCode: tokenResponse.status,
-      statusText: tokenResponse.statusText,
-      responseLength: responseText.length
     });
 
     if (!tokenResponse.ok) {
         reqLogger.error('OAuth provider error response', {
           provider,
           statusCode: tokenResponse.status,
-          statusText: tokenResponse.statusText,
-          responseText: responseText.substring(0, 500) // Truncate long responses
+          responseText: responseText.substring(0, 500)
         });
         
         try {
             const errorData = JSON.parse(responseText);
             return res.status(tokenResponse.status).json({
-                error: errorData.error_description || errorData.error || `Failed to exchange code for token.`,
+                error: errorData.error_description || errorData.error || 'Failed to exchange code for token.',
             });
         } catch (e) {
             const params = new URLSearchParams(responseText);
@@ -214,17 +216,13 @@ app.post('/api/oauth-token', async (req: Request, res: Response) => {
     reqLogger.info('OAuth token exchange successful', {
       provider,
       hasAccessToken: !!tokenData.access_token,
-      hasRefreshToken: !!tokenData.refresh_token,
-      tokenType: tokenData.token_type,
-      scope: tokenData.scope,
-      expiresIn: tokenData.expires_in
     });
     
     endTimer();
     res.json(tokenData);
   } catch (error: any) {
     logError(reqLogger, error, {
-      endpoint: '/api/oauth-token',
+      endpoint: '/api/oauth/token',
       provider: req.body?.provider
     });
     endTimer();
@@ -291,135 +289,8 @@ app.post('/api/oauth-hosted/init', async (req: Request, res: Response) => {
   }
 });
 
-// Hosted OAuth - Exchange code for token using stored credentials
-app.post('/api/oauth-hosted/token', async (req: Request, res: Response) => {
-  const reqLogger = req.logger || logger;
-  const endTimer = logTiming(reqLogger, 'oauth-hosted-token-exchange');
-  
-  try {
-    const { code, provider, redirectUri } = req.body;
-
-    reqLogger.info('Hosted OAuth token exchange initiated', {
-      provider,
-      hasCode: !!code,
-      hasRedirectUri: !!redirectUri,
-      redirectUri: redirectUri // Safe to log redirect URI
-    });
-
-    if (!code || !provider || !redirectUri) {
-      reqLogger.warn('Hosted OAuth token exchange failed - missing parameters', {
-        missingFields: {
-          code: !code,
-          provider: !provider,
-          redirectUri: !redirectUri
-        }
-      });
-      return res.status(400).json({ error: 'Missing required parameters in request body.' });
-    }
-
-    if (provider !== 'github' && provider !== 'google') {
-      reqLogger.warn('Hosted OAuth token exchange failed - unsupported provider', { provider });
-      return res.status(400).json({ error: 'Unsupported provider.' });
-    }
-
-    // Retrieve hosted credentials
-    const { clientId, clientSecret } = await getHostedCredentials(provider);
-
-    let tokenUrl: string;
-    const fetchOptions: RequestInit = {};
-
-    if (provider === 'github') {
-      tokenUrl = 'https://github.com/login/oauth/access_token';
-      const params = new URLSearchParams();
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-      params.append('code', code);
-      params.append('redirect_uri', redirectUri);
-
-      fetchOptions.method = 'POST';
-      fetchOptions.headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      };
-      fetchOptions.body = params;
-
-    } else if (provider === 'google') {
-      tokenUrl = 'https://oauth2.googleapis.com/token';
-      fetchOptions.method = 'POST';
-      fetchOptions.headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      };
-      fetchOptions.body = JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-      });
-    } else {
-      reqLogger.warn('Hosted OAuth token exchange failed - unsupported provider', { provider });
-      return res.status(400).json({ error: 'Unsupported provider.' });
-    }
-
-    reqLogger.info('Making hosted OAuth provider token request', {
-      provider,
-      tokenUrl,
-      method: fetchOptions.method
-    });
-
-    const tokenResponse = await fetch(tokenUrl, fetchOptions);
-    const responseText = await tokenResponse.text();
-
-    reqLogger.info('Hosted OAuth provider response received', {
-      provider,
-      statusCode: tokenResponse.status,
-      statusText: tokenResponse.statusText,
-      responseLength: responseText.length
-    });
-
-    if (!tokenResponse.ok) {
-        reqLogger.error('Hosted OAuth provider error response', {
-          provider,
-          statusCode: tokenResponse.status,
-          statusText: tokenResponse.statusText,
-          responseText: responseText.substring(0, 500) // Truncate long responses
-        });
-        
-        try {
-            const errorData = JSON.parse(responseText);
-            return res.status(tokenResponse.status).json({
-                error: errorData.error_description || errorData.error || `Failed to exchange code for token.`,
-            });
-        } catch (e) {
-            const params = new URLSearchParams(responseText);
-            const error = params.get('error_description') || params.get('error') || responseText;
-            return res.status(tokenResponse.status).json({ error });
-        }
-    }
-    
-    const tokenData = JSON.parse(responseText);
-    
-    reqLogger.info('Hosted OAuth token exchange successful', {
-      provider,
-      hasAccessToken: !!tokenData.access_token,
-      hasRefreshToken: !!tokenData.refresh_token,
-      tokenType: tokenData.token_type,
-      scope: tokenData.scope,
-      expiresIn: tokenData.expires_in
-    });
-    
-    endTimer();
-    res.json(tokenData);
-  } catch (error: any) {
-    logError(reqLogger, error, {
-      endpoint: '/api/oauth-hosted/token',
-      provider: req.body?.provider
-    });
-    endTimer();
-    res.status(500).json({ error: 'Internal server error.', message: error.message });
-  }
-});
+// This endpoint is now consolidated into /api/oauth/token
+// app.post('/api/oauth-hosted/token', ...);
 
 
 // --- Static file serving & SPA Fallback ---

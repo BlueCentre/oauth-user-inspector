@@ -89,107 +89,62 @@ const App: React.FC = () => {
   const exchangeCodeForToken = useCallback(async (code: string, provider: AuthProvider, isHosted = false) => {
     setIsLoading(true);
     setError(null);
-    
-    if (!isHosted) {
-      // Retrieve credentials from sessionStorage for regular OAuth
-      const credsString = sessionStorage.getItem('oauth_credentials');
-      sessionStorage.removeItem('oauth_credentials'); // Clean up immediately
 
-      if (!credsString) {
-          setError("Could not find OAuth credentials. Please try logging in again.");
-          setIsLoading(false);
-          return;
+    try {
+      const requestBody: any = { 
+        code, 
+        provider, 
+        isHosted, 
+        redirectUri: getRedirectUri() 
+      };
+
+      if (!isHosted) {
+        const credsString = sessionStorage.getItem('oauth_credentials');
+        sessionStorage.removeItem('oauth_credentials');
+        if (!credsString) {
+          throw new Error("Could not find OAuth credentials. Please try logging in again.");
+        }
+        const { clientId, clientSecret } = JSON.parse(credsString);
+        requestBody.clientId = clientId;
+        requestBody.clientSecret = clientSecret;
       }
-      const { clientId, clientSecret } = JSON.parse(credsString);
+
+      const response = await fetch('/api/oauth/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      });
+
+      const responseText = await response.text();
+      let data;
 
       try {
-        const response = await fetch('/api/oauth-token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            code, 
-            provider, 
-            clientId, 
-            clientSecret, 
-            redirectUri: getRedirectUri() 
-          }),
-        });
-
-        const responseText = await response.text();
-        let data;
-
-        try {
-          data = JSON.parse(responseText);
-        } catch (e) {
-          if (e instanceof SyntaxError) {
-            if (responseText.trim().toLowerCase().startsWith('<!doctype html')) {
-               throw new Error("Received HTML instead of JSON. This likely means the backend for token exchange is not running or is misconfigured.");
-            }
-            throw new Error("Received an invalid JSON response from the server.");
+        data = JSON.parse(responseText);
+      } catch (e) {
+        if (e instanceof SyntaxError) {
+          if (responseText.trim().toLowerCase().startsWith('<!doctype html')) {
+            throw new Error("Received HTML instead of JSON. This likely means the backend for token exchange is not running or is misconfigured.");
           }
-          throw e; // Re-throw other errors
+          throw new Error("Received an invalid JSON response from the server.");
         }
-
-        if (!response.ok) {
-          throw new Error(data.error || data.message || 'Token exchange failed on the server.');
-        }
-
-        const { access_token } = data;
-        if (!access_token) {
-          throw new Error('Access token not found in server response.');
-        }
-
-        localStorage.setItem('auth_details', JSON.stringify({ token: access_token, provider }));
-        await fetchUser(access_token, provider);
-
-      } catch (err: any) {
-        setError(`Failed to authenticate: ${err.message}`);
-        setIsLoading(false);
+        throw e;
       }
-    } else {
-      // Hosted OAuth flow
-      try {
-        const response = await fetch('/api/oauth-hosted/token', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            code, 
-            provider, 
-            redirectUri: getRedirectUri() 
-          }),
-        });
 
-        const responseText = await response.text();
-        let data;
-
-        try {
-          data = JSON.parse(responseText);
-        } catch (e) {
-          if (e instanceof SyntaxError) {
-            if (responseText.trim().toLowerCase().startsWith('<!doctype html')) {
-               throw new Error("Received HTML instead of JSON. This likely means the backend for token exchange is not running or is misconfigured.");
-            }
-            throw new Error("Received an invalid JSON response from the server.");
-          }
-          throw e; // Re-throw other errors
-        }
-
-        if (!response.ok) {
-          throw new Error(data.error || data.message || 'Hosted OAuth token exchange failed on the server.');
-        }
-
-        const { access_token } = data;
-        if (!access_token) {
-          throw new Error('Access token not found in server response.');
-        }
-
-        localStorage.setItem('auth_details', JSON.stringify({ token: access_token, provider }));
-        await fetchUser(access_token, provider);
-
-      } catch (err: any) {
-        setError(`Failed to authenticate with hosted OAuth: ${err.message}`);
-        setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(data.error || data.message || 'Token exchange failed on the server.');
       }
+
+      const { access_token } = data;
+      if (!access_token) {
+        throw new Error('Access token not found in server response.');
+      }
+
+      localStorage.setItem('auth_details', JSON.stringify({ token: access_token, provider }));
+      await fetchUser(access_token, provider);
+
+    } catch (err: any) {
+      setError(`Failed to authenticate: ${err.message}`);
+      setIsLoading(false);
     }
   }, [fetchUser]);
 
