@@ -256,20 +256,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                 </div>
             </div>
 
-            {/* Hosted Google OAuth - Placeholder */}
+            {/* Hosted Google OAuth */}
             <div className="mt-8 pt-6 border-t border-slate-700">
                 <h3 className="text-center text-lg font-medium text-slate-300 mb-4">Or use our Google App</h3>
                 <div className="text-slate-400 space-y-2 text-sm bg-slate-900/50 p-4 rounded-lg border border-slate-700">
-                  <p>Our hosted Google OAuth app will be available soon! This option will allow you to authenticate without setting up your own OAuth application.</p>
-                  <p className="text-slate-500">Coming soon - no setup required, just one-click authentication with Google.</p>
+                  <p>Use our hosted Google OAuth app - no setup required! Just click the button below to authenticate with Google.</p>
+                  <p className="text-slate-500">This option uses our pre-configured OAuth application for your convenience.</p>
                 </div>
                 <div className="mt-6">
                   <button
-                    disabled={true}
-                    className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-slate-400 bg-slate-700/50 cursor-not-allowed transition-all"
+                    onClick={() => onHostedOAuthLogin('google')}
+                    className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                   >
                     <GoogleIcon className="h-5 w-5 mr-2" />
-                    Sign in with Hosted Google App (Coming Soon)
+                    Sign in with Hosted Google App
                   </button>
                 </div>
             </div>
