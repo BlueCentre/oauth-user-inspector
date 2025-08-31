@@ -11,6 +11,7 @@
     "dev:frontend": "vite",
     "build:frontend": "vite build",
     "build": "npm run build:frontend && npm run build:server",
+    "deploy": "./scripts/deploy.sh",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -19,6 +19,17 @@ echo "📋 Enabling required Google Cloud APIs..."
 gcloud services enable cloudbuild.googleapis.com
 gcloud services enable run.googleapis.com
 gcloud services enable containerregistry.googleapis.com
+gcloud services enable secretmanager.googleapis.com
+
+# Grant Secret Manager access to Cloud Run service account
+echo "🔐 Setting up Secret Manager permissions..."
+PROJECT_NUMBER=$(gcloud projects describe $PROJECT_ID --format="value(projectNumber)")
+CLOUD_RUN_SA="$PROJECT_NUMBER-compute@developer.gserviceaccount.com"
+
+# Grant Secret Manager Secret Accessor role to Cloud Run service account
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+    --member="serviceAccount:$CLOUD_RUN_SA" \
+    --role="roles/secretmanager.secretAccessor" || echo "⚠️  Permission may already exist"
 
 # Build and deploy using Cloud Build
 echo "🔨 Building and deploying with Cloud Build..."

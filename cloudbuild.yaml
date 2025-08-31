@@ -4,20 +4,11 @@ steps:
     args: [
       'build', 
       '-t', 
-      'gcr.io/$PROJECT_ID/oauth-user-inspector:$COMMIT_SHA',
-      '-t',
       'gcr.io/$PROJECT_ID/oauth-user-inspector:latest',
       '.'
     ]
 
   # Push the container image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: [
-      'push', 
-      'gcr.io/$PROJECT_ID/oauth-user-inspector:$COMMIT_SHA'
-    ]
-
-  # Push the latest tag
   - name: 'gcr.io/cloud-builders/docker'
     args: [
       'push', 
@@ -32,7 +23,7 @@ steps:
       'deploy',
       'oauth-user-inspector',
       '--image',
-      'gcr.io/$PROJECT_ID/oauth-user-inspector:$COMMIT_SHA',
+      'gcr.io/$PROJECT_ID/oauth-user-inspector:latest',
       '--region',
       'us-west1',
       '--platform',
@@ -49,9 +40,8 @@ steps:
       '--max-instances',
       '10',
       '--set-env-vars',
-      'NODE_ENV=production'
+      'NODE_ENV=production,GOOGLE_CLOUD_PROJECT=$PROJECT_ID'
     ]
 
 images:
-  - 'gcr.io/$PROJECT_ID/oauth-user-inspector:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/oauth-user-inspector:latest'
