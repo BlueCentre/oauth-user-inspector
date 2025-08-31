@@ -107,12 +107,13 @@ console.log('rootDir:', rootDir);
 console.log('dist/index.html exists:', fs.existsSync(path.join(distDir, 'index.html')));
 console.log('root/index.html exists:', fs.existsSync(path.join(rootDir, 'index.html')));
 
-// First, try to serve from dist directory for built assets
+// IMPORTANT: Only serve from dist directory to avoid serving wrong index.html
+// First, try to serve built assets from dist/assets
 app.use('/assets', express.static(path.join(distDir, 'assets')));
-// Then serve other static files from dist
-app.use(express.static(distDir));
-// Fallback to serve from root (for development)
-app.use(express.static(rootDir));
+// Then serve other static files from dist (but exclude index.html to prevent conflicts)
+app.use(express.static(distDir, { index: false }));
+
+// DO NOT serve static files from root to avoid source index.html override
 
 // The SPA fallback route sends 'index.html' for any GET request that doesn't match a static file.
 app.get('*', (req: Request, res: Response) => {
