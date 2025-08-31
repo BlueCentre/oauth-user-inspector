@@ -17,7 +17,7 @@ COPY . .
 RUN npm run build
 
 # Verify the build output exists
-RUN ls -la dist/
+RUN ls -la dist/ && ls -la dist-server/
 
 # Remove dev dependencies to reduce image size
 RUN npm ci --only=production && npm cache clean --force

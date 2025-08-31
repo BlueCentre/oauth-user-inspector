@@ -11,7 +11,7 @@ import { fileURLToPath, URLSearchParams } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
-const port = process.env.PORT || 8080;
+const port = parseInt(process.env.PORT || '8080', 10);
 // --- Middleware ---
 app.use(express.json());
 // --- API Routes ---
@@ -82,12 +82,14 @@ app.post('/api/oauth-token', async (req, res) => {
 });
 // --- Static file serving & SPA Fallback ---
 // These routes must come after the API routes.
-const rootDir = path.join(__dirname, '..');
+// Serve frontend files from the dist directory (one level up from dist-server)
+const rootDir = path.join(__dirname, '..', 'dist');
 app.use(express.static(rootDir));
 // The SPA fallback route sends 'index.html' for any GET request that doesn't match a static file.
 app.get('*', (req, res) => {
     res.sendFile(path.resolve(rootDir, 'index.html'));
 });
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
     console.log(`Server listening on port ${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
