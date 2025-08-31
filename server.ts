@@ -103,9 +103,22 @@ console.log('__dirname:', __dirname);
 console.log('distDir:', distDir);
 console.log('rootDir:', rootDir);
 
-// Check if files exist
+// Check if files exist and their contents
 console.log('dist/index.html exists:', fs.existsSync(path.join(distDir, 'index.html')));
 console.log('root/index.html exists:', fs.existsSync(path.join(rootDir, 'index.html')));
+
+// DEBUG: Show actual file contents
+if (fs.existsSync(path.join(distDir, 'index.html'))) {
+  console.log('=== DIST INDEX.HTML CONTENT ===');
+  console.log(fs.readFileSync(path.join(distDir, 'index.html'), 'utf8'));
+  console.log('=== END DIST CONTENT ===');
+}
+
+// DEBUG: List dist directory contents
+console.log('Contents of dist directory:', fs.readdirSync(distDir));
+if (fs.existsSync(path.join(distDir, 'assets'))) {
+  console.log('Contents of dist/assets directory:', fs.readdirSync(path.join(distDir, 'assets')));
+}
 
 // IMPORTANT: Only serve from dist directory to avoid serving wrong index.html
 // First, try to serve built assets from dist/assets
