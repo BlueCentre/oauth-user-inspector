@@ -1,13 +1,12 @@
 node_modules
-npm-debug.log
 .git
 .gitignore
 README.md
+Dockerfile
+.dockerignore
 .env
-.env.example
-.nyc_output
-coverage
+.env.local
 .vscode
-.DS_Store
-*.log
-deploy.sh
+dist-server
+# Exclude root index.html so built dist/index.html is used
+index.html

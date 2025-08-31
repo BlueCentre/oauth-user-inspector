@@ -16,6 +16,9 @@ COPY . .
 # Build the application
 RUN npm run build
 
+# Move the built index.html to the root to override the source version
+RUN cp dist/index.html ./index.html
+
 # Verify the build output exists
 RUN ls -la dist/ && ls -la dist-server/
 
