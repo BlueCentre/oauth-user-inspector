@@ -7,6 +7,5 @@ Dockerfile
 .env
 .env.local
 .vscode
-dist-server
-# Exclude root index.html so built dist/index.html is used
+# Exclude source index.html so built version isn't overwritten
 index.html

@@ -10,14 +10,14 @@ COPY package.json package-lock.json ./
 # Install ALL dependencies (including dev dependencies for building)
 RUN npm ci
 
-# Copy source code
+# Copy source files
 COPY . .
 
 # Build the application
 RUN npm run build
 
-# Move the built index.html to the root to override the source version
-RUN cp dist/index.html ./index.html
+# Verify the built index.html exists and has correct assets
+RUN echo "Built index.html contents:" && head -20 dist/index.html
 
 # Verify the build output exists
 RUN ls -la dist/ && ls -la dist-server/

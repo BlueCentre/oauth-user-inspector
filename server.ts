@@ -94,12 +94,12 @@ app.post('/api/oauth-token', async (req: Request, res: Response) => {
 // --- Static file serving & SPA Fallback ---
 // These routes must come after the API routes.
 // Serve frontend files from the dist directory (one level up from dist-server)
-const rootDir = path.join(__dirname, '..', 'dist');
-app.use(express.static(rootDir));
+const distDir = path.join(__dirname, '..', 'dist');
+app.use(express.static(distDir));
 
 // The SPA fallback route sends 'index.html' for any GET request that doesn't match a static file.
 app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.resolve(rootDir, 'index.html'));
+  res.sendFile(path.resolve(distDir, 'index.html'));
 });
 
 
