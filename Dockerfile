@@ -10,8 +10,16 @@ COPY package.json package-lock.json ./
 # Install ALL dependencies (including dev dependencies for building)
 RUN npm ci
 
-# Copy source files
-COPY . .
+# Copy only necessary source files to avoid conflicts
+COPY package.json package-lock.json ./
+COPY App.tsx index.tsx index.css index.html ./
+COPY components/ ./components/
+COPY types.ts ./
+COPY server.ts ./
+COPY tsconfig*.json ./
+COPY vite.config.ts ./
+COPY postcss.config.js ./
+COPY tailwind.config.js ./
 
 # Build the application
 RUN npm run build
