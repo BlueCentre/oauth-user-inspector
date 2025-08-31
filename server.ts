@@ -13,7 +13,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const port = process.env.PORT || 8080;
+const port = parseInt(process.env.PORT || '8080', 10);
 
 // --- Middleware ---
 app.use(express.json());
@@ -102,6 +102,7 @@ app.get('*', (req: Request, res: Response) => {
 });
 
 
-app.listen(port, () => {
+app.listen(port, '0.0.0.0', () => {
   console.log(`Server listening on port ${port}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });
