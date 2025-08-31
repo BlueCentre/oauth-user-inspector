@@ -8,6 +8,7 @@ import express, { Request, Response } from 'express';
 import path from 'path';
 import fetch, { RequestInit } from 'node-fetch';
 import { fileURLToPath, URLSearchParams } from 'url';
+import fs from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -103,7 +104,6 @@ console.log('distDir:', distDir);
 console.log('rootDir:', rootDir);
 
 // Check if files exist
-const fs = require('fs');
 console.log('dist/index.html exists:', fs.existsSync(path.join(distDir, 'index.html')));
 console.log('root/index.html exists:', fs.existsSync(path.join(rootDir, 'index.html')));
 
@@ -122,7 +122,6 @@ app.get('*', (req: Request, res: Response) => {
   const rootIndex = path.resolve(rootDir, 'index.html');
   
   // Check if dist/index.html exists, if not use root index.html
-  const fs = require('fs');
   if (fs.existsSync(distIndex)) {
     console.log('Serving index.html from dist directory');
     res.sendFile(distIndex);
