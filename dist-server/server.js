@@ -11,10 +11,57 @@ import { fileURLToPath, URLSearchParams } from 'url';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import logger, { createRequestLogger, logTiming, logError } from './logger.js';
+import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
 const port = parseInt(process.env.PORT || '8080', 10);
+// Initialize Google Secret Manager client
+const secretManagerClient = new SecretManagerServiceClient();
+// Helper function to retrieve secrets from Google Secret Manager
+async function getSecret(secretName) {
+    try {
+        const projectId = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
+        if (!projectId) {
+            throw new Error('GOOGLE_CLOUD_PROJECT or GCP_PROJECT environment variable not set');
+        }
+        const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
+        const [version] = await secretManagerClient.accessSecretVersion({ name });
+        if (!version.payload?.data) {
+            throw new Error(`No payload data found for secret: ${secretName}`);
+        }
+        return version.payload.data.toString();
+    }
+    catch (error) {
+        logger.error('Failed to retrieve secret from Secret Manager', {
+            secretName,
+            error: error.message,
+            stack: error.stack
+        });
+        throw new Error(`Failed to retrieve secret ${secretName}: ${error.message}`);
+    }
+}
+// Helper function to get hosted OAuth credentials
+async function getHostedCredentials(provider) {
+    if (provider === 'github') {
+        const [clientId, clientSecret] = await Promise.all([
+            getSecret('GITHUB_APP_OAUTH_CLIENT_ID'),
+            getSecret('GITHUB_APP_OAUTH_CLIENT_SECRET')
+        ]);
+        return { clientId, clientSecret };
+    }
+    else if (provider === 'google') {
+        // Placeholder for future Google implementation
+        const [clientId, clientSecret] = await Promise.all([
+            getSecret('GOOGLE_APP_OAUTH_CLIENT_ID'),
+            getSecret('GOOGLE_APP_OAUTH_CLIENT_SECRET')
+        ]);
+        return { clientId, clientSecret };
+    }
+    else {
+        throw new Error(`Unsupported provider: ${provider}`);
+    }
+}
 // --- Middleware ---
 // Request ID and logging middleware
 app.use((req, res, next) => {
@@ -154,6 +201,173 @@ app.post('/api/oauth-token', async (req, res) => {
     catch (error) {
         logError(reqLogger, error, {
             endpoint: '/api/oauth-token',
+            provider: req.body?.provider
+        });
+        endTimer();
+        res.status(500).json({ error: 'Internal server error.', message: error.message });
+    }
+});
+// Hosted OAuth - Get authorization URL using stored credentials
+app.post('/api/oauth-hosted/init', async (req, res) => {
+    const reqLogger = req.logger || logger;
+    const endTimer = logTiming(reqLogger, 'oauth-hosted-init');
+    try {
+        const { provider, redirectUri } = req.body;
+        reqLogger.info('Hosted OAuth initialization requested', {
+            provider,
+            hasRedirectUri: !!redirectUri,
+            redirectUri: redirectUri // Safe to log redirect URI
+        });
+        if (!provider || !redirectUri) {
+            reqLogger.warn('Hosted OAuth initialization failed - missing parameters', {
+                missingFields: {
+                    provider: !provider,
+                    redirectUri: !redirectUri
+                }
+            });
+            return res.status(400).json({ error: 'Missing required parameters: provider and redirectUri.' });
+        }
+        if (provider !== 'github' && provider !== 'google') {
+            reqLogger.warn('Hosted OAuth initialization failed - unsupported provider', { provider });
+            return res.status(400).json({ error: 'Unsupported provider. Only github and google are supported.' });
+        }
+        // Retrieve hosted credentials
+        const { clientId } = await getHostedCredentials(provider);
+        let authUrl = '';
+        if (provider === 'github') {
+            const scope = 'read:user,user:email';
+            authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=github-hosted`;
+        }
+        else if (provider === 'google') {
+            const scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
+            authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google-hosted`;
+        }
+        reqLogger.info('Hosted OAuth authorization URL generated', {
+            provider,
+            hasAuthUrl: !!authUrl
+        });
+        endTimer();
+        res.json({ authUrl });
+    }
+    catch (error) {
+        logError(reqLogger, error, {
+            endpoint: '/api/oauth-hosted/init',
+            provider: req.body?.provider
+        });
+        endTimer();
+        res.status(500).json({ error: 'Failed to initialize hosted OAuth.', message: error.message });
+    }
+});
+// Hosted OAuth - Exchange code for token using stored credentials
+app.post('/api/oauth-hosted/token', async (req, res) => {
+    const reqLogger = req.logger || logger;
+    const endTimer = logTiming(reqLogger, 'oauth-hosted-token-exchange');
+    try {
+        const { code, provider, redirectUri } = req.body;
+        reqLogger.info('Hosted OAuth token exchange initiated', {
+            provider,
+            hasCode: !!code,
+            hasRedirectUri: !!redirectUri,
+            redirectUri: redirectUri // Safe to log redirect URI
+        });
+        if (!code || !provider || !redirectUri) {
+            reqLogger.warn('Hosted OAuth token exchange failed - missing parameters', {
+                missingFields: {
+                    code: !code,
+                    provider: !provider,
+                    redirectUri: !redirectUri
+                }
+            });
+            return res.status(400).json({ error: 'Missing required parameters in request body.' });
+        }
+        if (provider !== 'github' && provider !== 'google') {
+            reqLogger.warn('Hosted OAuth token exchange failed - unsupported provider', { provider });
+            return res.status(400).json({ error: 'Unsupported provider.' });
+        }
+        // Retrieve hosted credentials
+        const { clientId, clientSecret } = await getHostedCredentials(provider);
+        let tokenUrl;
+        const fetchOptions = {};
+        if (provider === 'github') {
+            tokenUrl = 'https://github.com/login/oauth/access_token';
+            const params = new URLSearchParams();
+            params.append('client_id', clientId);
+            params.append('client_secret', clientSecret);
+            params.append('code', code);
+            params.append('redirect_uri', redirectUri);
+            fetchOptions.method = 'POST';
+            fetchOptions.headers = {
+                'Accept': 'application/json',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            };
+            fetchOptions.body = params;
+        }
+        else if (provider === 'google') {
+            tokenUrl = 'https://oauth2.googleapis.com/token';
+            fetchOptions.method = 'POST';
+            fetchOptions.headers = {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+            };
+            fetchOptions.body = JSON.stringify({
+                client_id: clientId,
+                client_secret: clientSecret,
+                code,
+                grant_type: 'authorization_code',
+                redirect_uri: redirectUri,
+            });
+        }
+        else {
+            reqLogger.warn('Hosted OAuth token exchange failed - unsupported provider', { provider });
+            return res.status(400).json({ error: 'Unsupported provider.' });
+        }
+        reqLogger.info('Making hosted OAuth provider token request', {
+            provider,
+            tokenUrl,
+            method: fetchOptions.method
+        });
+        const tokenResponse = await fetch(tokenUrl, fetchOptions);
+        const responseText = await tokenResponse.text();
+        reqLogger.info('Hosted OAuth provider response received', {
+            provider,
+            statusCode: tokenResponse.status,
+            statusText: tokenResponse.statusText,
+            responseLength: responseText.length
+        });
+        if (!tokenResponse.ok) {
+            reqLogger.error('Hosted OAuth provider error response', {
+                provider,
+                statusCode: tokenResponse.status,
+                statusText: tokenResponse.statusText,
+                responseText: responseText.substring(0, 500) // Truncate long responses
+            });
+            try {
+                const errorData = JSON.parse(responseText);
+                return res.status(tokenResponse.status).json({
+                    error: errorData.error_description || errorData.error || `Failed to exchange code for token.`,
+                });
+            }
+            catch (e) {
+                const params = new URLSearchParams(responseText);
+                const error = params.get('error_description') || params.get('error') || responseText;
+                return res.status(tokenResponse.status).json({ error });
+            }
+        }
+        const tokenData = JSON.parse(responseText);
+        reqLogger.info('Hosted OAuth token exchange successful', {
+            provider,
+            hasAccessToken: !!tokenData.access_token,
+            hasRefreshToken: !!tokenData.refresh_token,
+            tokenType: tokenData.token_type,
+            scope: tokenData.scope,
+            expiresIn: tokenData.expires_in
+        });
+        endTimer();
+        res.json(tokenData);
+    }
+    catch (error) {
+        logError(reqLogger, error, {
+            endpoint: '/api/oauth-hosted/token',
             provider: req.body?.provider
         });
         endTimer();
