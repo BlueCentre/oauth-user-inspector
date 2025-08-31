@@ -26,7 +26,7 @@ RUN npm run build
 
 # Show what we built
 RUN echo "=== BUILT FILES ===" && ls -la dist/ && echo "" && echo "Built index.html content:" && cat dist/index.html
-RUN echo "" && echo "=== FULL DIRECTORY LISTING ===" && find . -name "index.html" -ls
+RUN echo "" && echo "=== FULL DIRECTORY LISTING ===" && find . -name "index.html"
 RUN echo "" && echo "=== ORIGINAL FILES ===" && echo "Original index.html content:" && cat index.html
 
 # COMPLETELY REPLACE the root index.html with the built version
