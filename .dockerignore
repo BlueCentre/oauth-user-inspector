@@ -7,5 +7,3 @@ Dockerfile
 .env
 .env.local
 .vscode
-# Exclude source index.html so built version isn't overwritten
-index.html
