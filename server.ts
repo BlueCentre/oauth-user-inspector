@@ -102,6 +102,11 @@ console.log('__dirname:', __dirname);
 console.log('distDir:', distDir);
 console.log('rootDir:', rootDir);
 
+// Check if files exist
+const fs = require('fs');
+console.log('dist/index.html exists:', fs.existsSync(path.join(distDir, 'index.html')));
+console.log('root/index.html exists:', fs.existsSync(path.join(rootDir, 'index.html')));
+
 // First, try to serve from dist directory for built assets
 app.use('/assets', express.static(path.join(distDir, 'assets')));
 // Then serve other static files from dist
