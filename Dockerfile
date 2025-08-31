@@ -15,7 +15,9 @@ COPY package.json package-lock.json ./
 COPY App.tsx index.tsx index.css index.html ./
 COPY components/ ./components/
 COPY types.ts ./
+COPY types/ ./types/
 COPY server.ts ./
+COPY logger.ts ./
 COPY tsconfig*.json ./
 COPY vite.config.ts ./
 COPY postcss.config.js ./
