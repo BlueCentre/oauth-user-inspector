@@ -95,11 +95,36 @@ app.post('/api/oauth-token', async (req: Request, res: Response) => {
 // These routes must come after the API routes.
 // Serve frontend files from the dist directory (one level up from dist-server)
 const distDir = path.join(__dirname, '..', 'dist');
+const rootDir = path.join(__dirname, '..');
+
+// Log the directories for debugging
+console.log('__dirname:', __dirname);
+console.log('distDir:', distDir);
+console.log('rootDir:', rootDir);
+
+// First, try to serve from dist directory for built assets
+app.use('/assets', express.static(path.join(distDir, 'assets')));
+// Then serve other static files from dist
 app.use(express.static(distDir));
+// Fallback to serve from root (for development)
+app.use(express.static(rootDir));
 
 // The SPA fallback route sends 'index.html' for any GET request that doesn't match a static file.
 app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.resolve(distDir, 'index.html'));
+  console.log('Fallback route for:', req.path);
+  // Try dist/index.html first, then fallback to root index.html
+  const distIndex = path.resolve(distDir, 'index.html');
+  const rootIndex = path.resolve(rootDir, 'index.html');
+  
+  // Check if dist/index.html exists, if not use root index.html
+  const fs = require('fs');
+  if (fs.existsSync(distIndex)) {
+    console.log('Serving index.html from dist directory');
+    res.sendFile(distIndex);
+  } else {
+    console.log('Serving index.html from root directory');
+    res.sendFile(rootIndex);
+  }
 });
 
 
