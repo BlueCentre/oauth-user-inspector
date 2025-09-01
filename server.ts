@@ -1,26 +1,21 @@
-// FIX: Updated file to use ES Module syntax (`import from`) instead of CommonJS (`import = require()`).
-// This resolves all TypeScript compilation errors which indicated that the project is targeting ES modules.
-// This change includes:
-// 1. Using standard ES module imports for all packages.
-// 2. Adding a polyfill for `__dirname` which is not present in ES modules.
-// 3. Using the correct `Request` and `Response` types from Express for route handlers.
 import express, { Request, Response, NextFunction } from 'express';
 import path from 'path';
 import fetch, { RequestInit } from 'node-fetch';
-import { fileURLToPath, URLSearchParams } from 'url';
+import { URLSearchParams } from 'url';
 import fs from 'fs';
 import { v4 as uuidv4 } from 'uuid';
-import logger, { createRequestLogger, logTiming, logError } from './logger.js';
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import logger, { createRequestLogger, logTiming, logError } from './logger.js';
 
 const app = express();
 const port = parseInt(process.env.PORT || '8080', 10);
 
 // Initialize Google Secret Manager client
 const secretManagerClient = new SecretManagerServiceClient();
+
+process.on('exit', (code) => {
+  console.log(`About to exit with code: ${code}`);
+});
 
 // Helper function to retrieve secrets from Google Secret Manager
 async function getSecret(secretName: string): Promise<string> {
@@ -29,14 +24,14 @@ async function getSecret(secretName: string): Promise<string> {
     if (!projectId) {
       throw new Error('GOOGLE_CLOUD_PROJECT or GCP_PROJECT environment variable not set');
     }
-    
+
     const name = `projects/${projectId}/secrets/${secretName}/versions/latest`;
     const [version] = await secretManagerClient.accessSecretVersion({ name });
-    
+
     if (!version.payload?.data) {
       throw new Error(`No payload data found for secret: ${secretName}`);
     }
-    
+
     return version.payload.data.toString();
   } catch (error: any) {
     logger.error('Failed to retrieve secret from Secret Manager', {
@@ -57,7 +52,6 @@ async function getHostedCredentials(provider: 'github' | 'google'): Promise<{ cl
     ]);
     return { clientId, clientSecret };
   } else if (provider === 'google') {
-    // Placeholder for future Google implementation
     const [clientId, clientSecret] = await Promise.all([
       getSecret('GOOGLE_APP_OAUTH_CLIENT_ID'),
       getSecret('GOOGLE_APP_OAUTH_CLIENT_SECRET')
@@ -71,12 +65,12 @@ async function getHostedCredentials(provider: 'github' | 'google'): Promise<{ cl
 // --- Middleware ---
 // Request ID and logging middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
-  req.id = req.headers['x-request-id'] as string || uuidv4();
+  req.id = (req.headers['x-request-id'] as string) || uuidv4();
   res.setHeader('X-Request-ID', req.id);
-  
+
   const reqLogger = createRequestLogger(req);
   req.logger = reqLogger;
-  
+
   reqLogger.info('Incoming request', {
     method: req.method,
     url: req.url,
@@ -84,224 +78,223 @@ app.use((req: Request, res: Response, next: NextFunction) => {
     headers: {
       'content-type': req.headers['content-type'],
       'user-agent': req.headers['user-agent'],
-      'referer': req.headers.referer
+      referer: req.headers.referer
     }
   });
-  
+
   // Log response when finished
-  const originalSend = res.send;
-  res.send = function(data) {
+  const originalSend = res.send.bind(res);
+  res.send = function (data: any): Response {
     reqLogger.info('Response sent', {
       statusCode: res.statusCode,
       statusMessage: res.statusMessage,
-      contentLength: data ? data.length : 0
+      contentLength: data ? (typeof data === 'string' ? data.length : JSON.stringify(data).length) : 0
     });
-    return originalSend.call(this, data);
-  };
-  
+    return originalSend(data);
+  } as any;
+
   next();
 });
 
 app.use(express.json());
 
-// --- API Routes ---
-// API routes are defined before static file serving.
+    // --- API Routes ---
+    // API routes are defined before static file serving.
 app.post('/api/oauth/token', async (req: Request, res: Response) => {
-  const reqLogger = req.logger || logger;
-  const endTimer = logTiming(reqLogger, 'oauth-token-exchange');
+      const reqLogger = req.logger || logger;
+      const endTimer = logTiming(reqLogger, 'oauth-token-exchange');
 
-  try {
-    const { code, provider, redirectUri, isHosted } = req.body;
-    let { clientId, clientSecret } = req.body;
+      try {
+        const { code, provider, redirectUri, isHosted } = req.body;
+        let { clientId, clientSecret } = req.body;
 
-    reqLogger.info('OAuth token exchange initiated', {
-      provider,
-      isHosted,
-      hasCode: !!code,
-      hasRedirectUri: !!redirectUri,
-    });
+        reqLogger.info('OAuth token exchange initiated', {
+          provider,
+          isHosted,
+          hasCode: !!code,
+          hasRedirectUri: !!redirectUri,
+        });
 
-    if (!code || !provider || !redirectUri) {
-      reqLogger.warn('OAuth token exchange failed - missing base parameters');
-      return res.status(400).json({ error: 'Missing required parameters: code, provider, redirectUri.' });
-    }
-    
-    if (provider !== 'github' && provider !== 'google') {
-      reqLogger.warn('OAuth token exchange failed - unsupported provider', { provider });
-      return res.status(400).json({ error: 'Unsupported provider.' });
-    }
+        if (!code || !provider || !redirectUri) {
+          reqLogger.warn('OAuth token exchange failed - missing base parameters');
+          return res.status(400).json({ error: 'Missing required parameters: code, provider, redirectUri.' });
+        }
+        
+        if (provider !== 'github' && provider !== 'google') {
+          reqLogger.warn('OAuth token exchange failed - unsupported provider', { provider });
+          return res.status(400).json({ error: 'Unsupported provider.' });
+        }
 
-    // If hosted, retrieve credentials from secret manager. Otherwise, require them in the body.
-    if (isHosted) {
-      const hostedCreds = await getHostedCredentials(provider);
-      clientId = hostedCreds.clientId;
-      clientSecret = hostedCreds.clientSecret;
-    } else if (!clientId || !clientSecret) {
-      reqLogger.warn('OAuth token exchange failed - missing client credentials for non-hosted flow');
-      return res.status(400).json({ error: 'Missing required parameters for non-hosted auth: clientId, clientSecret.' });
-    }
+        // If hosted, retrieve credentials from secret manager. Otherwise, require them in the body.
+        if (isHosted) {
+          const hostedCreds = await getHostedCredentials(provider);
+          clientId = hostedCreds.clientId;
+          clientSecret = hostedCreds.clientSecret;
+        } else if (!clientId || !clientSecret) {
+          reqLogger.warn('OAuth token exchange failed - missing client credentials for non-hosted flow');
+          return res.status(400).json({ error: 'Missing required parameters for non-hosted auth: clientId, clientSecret.' });
+        }
 
-    let tokenUrl: string;
-    const fetchOptions: RequestInit = {};
+        let tokenUrl: string;
+        const fetchOptions: RequestInit = {};
 
-    if (provider === 'github') {
-      tokenUrl = 'https://github.com/login/oauth/access_token';
-      const params = new URLSearchParams();
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-      params.append('code', code);
-      params.append('redirect_uri', redirectUri);
+        if (provider === 'github') {
+          tokenUrl = 'https://github.com/login/oauth/access_token';
+          const params = new URLSearchParams();
+          params.append('client_id', clientId);
+          params.append('client_secret', clientSecret);
+          params.append('code', code);
+          params.append('redirect_uri', redirectUri);
 
-      fetchOptions.method = 'POST';
-      fetchOptions.headers = {
-        'Accept': 'application/json',
-        'Content-Type': 'application/x-www-form-urlencoded',
-      };
-      fetchOptions.body = params;
+          fetchOptions.method = 'POST';
+          fetchOptions.headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          };
+          fetchOptions.body = params;
 
-    } else if (provider === 'google') {
-      tokenUrl = 'https://oauth2.googleapis.com/token';
-      fetchOptions.method = 'POST';
-      fetchOptions.headers = {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-      };
-      fetchOptions.body = JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        code,
-        grant_type: 'authorization_code',
-        redirect_uri: redirectUri,
-      });
-    } else {
-      // This case is already handled above, but kept for safety.
-      return res.status(400).json({ error: 'Unsupported provider.' });
-    }
+        } else if (provider === 'google') {
+          tokenUrl = 'https://oauth2.googleapis.com/token';
+          fetchOptions.method = 'POST';
+          fetchOptions.headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          };
+          fetchOptions.body = JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri,
+          });
+        } else {
+          // This case is already handled above, but kept for safety.
+          return res.status(400).json({ error: 'Unsupported provider.' });
+        }
 
-    reqLogger.info('Making OAuth provider token request', {
-      provider,
-      tokenUrl,
-      method: fetchOptions.method
-    });
+        reqLogger.info('Making OAuth provider token request', {
+          provider,
+          tokenUrl,
+          method: fetchOptions.method
+        });
 
-    const tokenResponse = await fetch(tokenUrl, fetchOptions);
-    const responseText = await tokenResponse.text();
+        const tokenResponse = await fetch(tokenUrl, fetchOptions);
+        const responseText = await tokenResponse.text();
 
-    reqLogger.info('OAuth provider response received', {
-      provider,
-      statusCode: tokenResponse.status,
-    });
-
-    if (!tokenResponse.ok) {
-        reqLogger.error('OAuth provider error response', {
+        reqLogger.info('OAuth provider response received', {
           provider,
           statusCode: tokenResponse.status,
-          responseText: responseText.substring(0, 500)
+        });
+
+        if (!tokenResponse.ok) {
+            reqLogger.error('OAuth provider error response', {
+              provider,
+              statusCode: tokenResponse.status,
+              responseText: responseText.substring(0, 500)
+            });
+            
+            try {
+                const errorData = JSON.parse(responseText);
+                return res.status(tokenResponse.status).json({
+                    error: errorData.error_description || errorData.error || 'Failed to exchange code for token.',
+                });
+            } catch (e) {
+                const params = new URLSearchParams(responseText);
+                const error = params.get('error_description') || params.get('error') || responseText;
+                return res.status(tokenResponse.status).json({ error });
+            }
+        }
+        
+        const tokenData = JSON.parse(responseText);
+        
+        reqLogger.info('OAuth token exchange successful', {
+          provider,
+          hasAccessToken: !!tokenData.access_token,
         });
         
-        try {
-            const errorData = JSON.parse(responseText);
-            return res.status(tokenResponse.status).json({
-                error: errorData.error_description || errorData.error || 'Failed to exchange code for token.',
-            });
-        } catch (e) {
-            const params = new URLSearchParams(responseText);
-            const error = params.get('error_description') || params.get('error') || responseText;
-            return res.status(tokenResponse.status).json({ error });
-        }
-    }
-    
-    const tokenData = JSON.parse(responseText);
-    
-    reqLogger.info('OAuth token exchange successful', {
-      provider,
-      hasAccessToken: !!tokenData.access_token,
+        endTimer();
+        res.json(tokenData);
+      } catch (error: any) {
+        logError(reqLogger, error, {
+          endpoint: '/api/oauth/token',
+          provider: req.body?.provider
+        });
+        endTimer();
+        res.status(500).json({ error: 'Internal server error.', message: error.message });
+      }
     });
-    
-    endTimer();
-    res.json(tokenData);
-  } catch (error: any) {
-    logError(reqLogger, error, {
-      endpoint: '/api/oauth/token',
-      provider: req.body?.provider
-    });
-    endTimer();
-    res.status(500).json({ error: 'Internal server error.', message: error.message });
-  }
-});
 
-// Hosted OAuth - Get authorization URL using stored credentials
+    // Hosted OAuth - Get authorization URL using stored credentials
 app.post('/api/oauth-hosted/init', async (req: Request, res: Response) => {
-  const reqLogger = req.logger || logger;
-  const endTimer = logTiming(reqLogger, 'oauth-hosted-init');
-  
-  try {
-    const { provider, redirectUri } = req.body;
+      const reqLogger = req.logger || logger;
+      const endTimer = logTiming(reqLogger, 'oauth-hosted-init');
+      
+      try {
+        const { provider, redirectUri } = req.body;
 
-    reqLogger.info('Hosted OAuth initialization requested', {
-      provider,
-      hasRedirectUri: !!redirectUri,
-      redirectUri: redirectUri // Safe to log redirect URI
-    });
+        reqLogger.info('Hosted OAuth initialization requested', {
+          provider,
+          hasRedirectUri: !!redirectUri,
+          redirectUri: redirectUri // Safe to log redirect URI
+        });
 
-    if (!provider || !redirectUri) {
-      reqLogger.warn('Hosted OAuth initialization failed - missing parameters', {
-        missingFields: {
-          provider: !provider,
-          redirectUri: !redirectUri
+        if (!provider || !redirectUri) {
+          reqLogger.warn('Hosted OAuth initialization failed - missing parameters', {
+            missingFields: {
+              provider: !provider,
+              redirectUri: !redirectUri
+            }
+          });
+          return res.status(400).json({ error: 'Missing required parameters: provider and redirectUri.' });
         }
-      });
-      return res.status(400).json({ error: 'Missing required parameters: provider and redirectUri.' });
-    }
 
-    if (provider !== 'github' && provider !== 'google') {
-      reqLogger.warn('Hosted OAuth initialization failed - unsupported provider', { provider });
-      return res.status(400).json({ error: 'Unsupported provider. Only github and google are supported.' });
-    }
+        if (provider !== 'github' && provider !== 'google') {
+          reqLogger.warn('Hosted OAuth initialization failed - unsupported provider', { provider });
+          return res.status(400).json({ error: 'Unsupported provider. Only github and google are supported.' });
+        }
 
-    // Retrieve hosted credentials
-    const { clientId } = await getHostedCredentials(provider);
-    
-    let authUrl = '';
-    
-    if (provider === 'github') {
-      const scope = 'read:user,user:email';
-      authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=github-hosted`;
-    } else if (provider === 'google') {
-      const scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
-      authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google-hosted`;
-    }
-    
-    reqLogger.info('Hosted OAuth authorization URL generated', {
-      provider,
-      hasAuthUrl: !!authUrl
+        // Retrieve hosted credentials
+        const { clientId } = await getHostedCredentials(provider);
+        
+        let authUrl = '';
+        
+        if (provider === 'github') {
+          const scope = 'read:user,user:email';
+          authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=github-hosted`;
+        } else if (provider === 'google') {
+          const scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
+          authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google-hosted`;
+        }
+        
+        reqLogger.info('Hosted OAuth authorization URL generated', {
+          provider,
+          hasAuthUrl: !!authUrl
+        });
+        
+        endTimer();
+        res.json({ authUrl });
+      } catch (error: any) {
+        logError(reqLogger, error, {
+          endpoint: '/api/oauth-hosted/init',
+          provider: req.body?.provider
+        });
+        endTimer();
+        res.status(500).json({ error: 'Failed to initialize hosted OAuth.', message: error.message });
+      }
     });
-    
-    endTimer();
-    res.json({ authUrl });
-  } catch (error: any) {
-    logError(reqLogger, error, {
-      endpoint: '/api/oauth-hosted/init',
-      provider: req.body?.provider
-    });
-    endTimer();
-    res.status(500).json({ error: 'Failed to initialize hosted OAuth.', message: error.message });
-  }
-});
 
-// This endpoint is now consolidated into /api/oauth/token
-// app.post('/api/oauth-hosted/token', ...);
-
+    // This endpoint is now consolidated into /api/oauth/token
+    // app.post('/api/oauth-hosted/token', ...);
 
 // --- Static file serving & SPA Fallback ---
-// These routes must come after the API routes.
-// Serve frontend files from the dist directory (one level up from dist-server)
-const distDir = path.join(__dirname, '..', 'dist');
-const rootDir = path.join(__dirname, '..');
+// Use process.cwd() so tests and production builds resolve consistently
+const baseDir = process.cwd();
+const distDir = path.join(baseDir, 'dist');
+const rootDir = baseDir;
 
-// Log the directories for debugging
+    // Log the directories for debugging
 logger.info('Static file serving configuration', {
-  __dirname,
+  baseDir,
   distDir,
   rootDir,
   paths: {
@@ -311,7 +304,7 @@ logger.info('Static file serving configuration', {
   }
 });
 
-// Check if files exist and their contents
+    // Check if files exist and their contents
 const distIndexExists = fs.existsSync(path.join(distDir, 'index.html'));
 const rootIndexExists = fs.existsSync(path.join(rootDir, 'index.html'));
 const distAssetsExists = fs.existsSync(path.join(distDir, 'assets'));
@@ -324,14 +317,14 @@ logger.info('File system check', {
   }
 });
 
-// Log directory contents
+    // Log directory contents
 try {
   const distContents = fs.readdirSync(distDir);
   logger.info('Directory contents', {
     directory: 'dist',
     contents: distContents
   });
-  
+
   if (distAssetsExists) {
     const assetsContents = fs.readdirSync(path.join(distDir, 'assets'));
     logger.info('Directory contents', {
@@ -340,31 +333,31 @@ try {
     });
   }
 } catch (error) {
-  logError(logger, error as Error, { context: 'directory-listing' });
+  logger.error('directory-listing', { error });
 }
 
-// IMPORTANT: Only serve from dist directory to avoid serving wrong index.html
-// First, try to serve built assets from dist/assets
+    // IMPORTANT: Only serve from dist directory to avoid serving wrong index.html
+    // First, try to serve built assets from dist/assets
 app.use('/assets', express.static(path.join(distDir, 'assets')));
 // Then serve other static files from dist (but exclude index.html to prevent conflicts)
 app.use(express.static(distDir, { index: false }));
 
-// DO NOT serve static files from root to avoid source index.html override
+    // DO NOT serve static files from root to avoid source index.html override
 
-// The SPA fallback route sends 'index.html' for any GET request that doesn't match a static file.
-app.get('*', (req: Request, res: Response) => {
+    // The SPA fallback route sends 'index.html' for any GET request that doesn't match a static file.
+app.get('*', (req, res) => {
   const reqLogger = req.logger || logger;
-  
+
   reqLogger.info('SPA fallback route triggered', {
     path: req.path,
     query: req.query,
     referer: req.headers.referer
   });
-  
+
   // Try dist/index.html first, then fallback to root index.html
   const distIndex = path.resolve(distDir, 'index.html');
   const rootIndex = path.resolve(rootDir, 'index.html');
-  
+
   // Check if dist/index.html exists, if not use root index.html
   if (fs.existsSync(distIndex)) {
     reqLogger.info('Serving SPA index.html', {
@@ -382,20 +375,63 @@ app.get('*', (req: Request, res: Response) => {
   }
 });
 
+    // --- Error Handling ---
+    // Generic error handler middleware
+app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  const reqLogger = req.logger || logger;
+  logError(reqLogger, err, {
+    endpoint: req.originalUrl,
+    method: req.method
+  });
 
-app.listen(port, '0.0.0.0', () => {
-  logger.info('Server started successfully', {
-    port,
-    host: '0.0.0.0',
-    environment: process.env.NODE_ENV || 'development',
-    nodeVersion: process.version,
-    platform: process.platform,
-    memory: {
-      rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
-      heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
-      heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
-    },
-    uptime: process.uptime() + 's',
-    pid: process.pid
+  if (res.headersSent) {
+    return next(err);
+  }
+
+  res.status(500).json({
+    error: 'An unexpected error occurred.',
+    message: err.message,
+    requestId: req.id
   });
 });
+
+    // Unhandled promise rejection handler
+process.on('unhandledRejection', (reason: any, promise: Promise<any>) => {
+  logger.error('Unhandled Rejection', {
+    reason: (reason as any)?.message || reason,
+    stack: (reason as any)?.stack,
+    promise
+  });
+});
+
+    // Uncaught exception handler
+process.on('uncaughtException', (error: Error) => {
+  logger.error('Uncaught Exception', {
+    message: error.message,
+    stack: error.stack
+  });
+  // It's generally recommended to exit the process after an uncaught exception
+  process.exit(1);
+});
+
+// Avoid listening when running in Jest tests to prevent open handle issues
+if (!process.env.JEST_WORKER_ID) {
+  app.listen(port, '0.0.0.0', () => {
+    logger.info('Server started successfully', {
+      port,
+      host: '0.0.0.0',
+      environment: process.env.NODE_ENV || 'development',
+      nodeVersion: process.version,
+      platform: process.platform,
+      memory: {
+        rss: Math.round(process.memoryUsage().rss / 1024 / 1024) + 'MB',
+        heapUsed: Math.round(process.memoryUsage().heapUsed / 1024 / 1024) + 'MB',
+        heapTotal: Math.round(process.memoryUsage().heapTotal / 1024 / 1024) + 'MB'
+      },
+      uptime: process.uptime() + 's',
+      pid: process.pid
+    });
+  });
+}
+
+export default app;

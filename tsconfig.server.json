@@ -6,10 +6,12 @@
     "rootDir": "./",
     "strict": true,
     "esModuleInterop": true,
+    "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
+    "esModuleInterop": true,
     "moduleResolution": "node"
   },
-  "include": ["server.ts", "logger.ts", "types/**/*"]
+  "include": ["server.ts", "logger.ts", "types/**/*", "start.ts", "__tests__/**/*"]
 }
