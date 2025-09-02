@@ -351,9 +351,10 @@ const App: React.FC = () => {
   const renderContent = () => {
     if (isLoading) {
       return (
-        <div className="flex flex-col items-center justify-center text-slate-400">
-          <Spinner className="w-10 h-10 mb-4" />
-          <p>Loading...</p>
+        <div className="space-y-6" aria-label="Loading skeleton">
+          <div className="h-6 w-48 bg-slate-700/50 rounded animate-pulse" />
+          <div className="h-40 bg-slate-800/50 rounded border border-slate-700 animate-pulse" />
+          <div className="h-10 bg-slate-700/50 rounded animate-pulse" />
         </div>
       );
     }
