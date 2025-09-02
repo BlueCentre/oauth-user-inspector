@@ -126,7 +126,12 @@ export interface ProviderLinkedInUser {
   emailAddress?: string; // This comes from a separate API call
 }
 
-export type AuthProvider = "github" | "google" | "gitlab" | "auth0" | "linkedin";
+export type AuthProvider =
+  | "github"
+  | "google"
+  | "gitlab"
+  | "auth0"
+  | "linkedin";
 
 // This is the unified user object used throughout the application
 export interface AppUser {

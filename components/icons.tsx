@@ -244,7 +244,9 @@ export const Auth0Icon: React.FC<{ className?: string }> = ({ className }) => (
   </svg>
 );
 
-export const LinkedInIcon: React.FC<{ className?: string }> = ({ className }) => (
+export const LinkedInIcon: React.FC<{ className?: string }> = ({
+  className,
+}) => (
   <svg
     xmlns="http://www.w3.org/2000/svg"
     viewBox="0 0 24 24"

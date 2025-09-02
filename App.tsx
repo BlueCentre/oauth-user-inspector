@@ -136,10 +136,27 @@ const App: React.FC = () => {
             },
           });
         } else if (provider === "auth0") {
-          // For Auth0, we need to get the domain from somewhere
-          // This is a limitation - we'll need the domain info
-          throw new Error("Auth0 userinfo endpoint requires domain configuration");
+          // For Auth0, we need to get the domain from stored credentials
+          const credentialsRaw = sessionStorage.getItem("oauth_credentials");
+          let auth0Domain = "";
+          if (credentialsRaw) {
+            try {
+              const credentials = JSON.parse(credentialsRaw);
+              auth0Domain = credentials.auth0Domain;
+            } catch {}
+          }
+          if (!auth0Domain) {
+            throw new Error(
+              "Auth0 domain not found. Please log in again with your Auth0 domain.",
+            );
+          }
+          response = await fetch(`https://${auth0Domain}/userinfo`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
         } else if (provider === "linkedin") {
+          // LinkedIn requires separate calls for profile and email
           response = await fetch("https://api.linkedin.com/v2/people/~", {
             headers: {
               Authorization: `Bearer ${token}`,
@@ -248,7 +265,11 @@ const App: React.FC = () => {
             name: auth0User.name,
             email: auth0User.email,
             profileUrl: auth0User.profile || "",
-            username: auth0User.preferred_username || auth0User.nickname || auth0User.email || auth0User.sub,
+            username:
+              auth0User.preferred_username ||
+              auth0User.nickname ||
+              auth0User.email ||
+              auth0User.sub,
             rawData: auth0User,
             accessToken: token,
             scopes,
@@ -258,16 +279,41 @@ const App: React.FC = () => {
           };
         } else if (provider === "linkedin") {
           const linkedinUser = rawData as ProviderLinkedInUser;
-          const firstName = Object.values(linkedinUser.firstName.localized)[0] || "";
-          const lastName = Object.values(linkedinUser.lastName.localized)[0] || "";
+          const firstName =
+            Object.values(linkedinUser.firstName.localized)[0] || "";
+          const lastName =
+            Object.values(linkedinUser.lastName.localized)[0] || "";
+
+          // Fetch email separately for LinkedIn
+          let email: string | null = null;
+          try {
+            const emailResponse = await fetch(
+              "https://api.linkedin.com/v2/emailAddress?q=members&projection=(elements*(handle~))",
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              },
+            );
+            if (emailResponse.ok) {
+              const emailData = await emailResponse.json();
+              if (emailData.elements && emailData.elements.length > 0) {
+                email = emailData.elements[0]["handle~"]?.emailAddress || null;
+              }
+            }
+          } catch (emailError) {
+            // Email fetch failed, continue without email
+            console.warn("Failed to fetch LinkedIn email:", emailError);
+          }
+
           appUser = {
             provider: "linkedin",
             avatarUrl: linkedinUser.profilePicture?.displayImage || "",
             name: `${firstName} ${lastName}`.trim(),
-            email: linkedinUser.emailAddress || null,
+            email: email,
             profileUrl: `https://www.linkedin.com/in/profile-${linkedinUser.id}`,
             username: linkedinUser.id,
-            rawData: linkedinUser,
+            rawData: { ...linkedinUser, emailAddress: email },
             accessToken: token,
             scopes,
             tokenType,
@@ -454,14 +500,14 @@ const App: React.FC = () => {
       const scope =
         "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google`;
-    } else if (provider === 'gitlab') {
-      const scope = 'read_user';
+    } else if (provider === "gitlab") {
+      const scope = "read_user";
       authUrl = `https://gitlab.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=gitlab`;
-    } else if (provider === 'auth0') {
-      const scope = 'openid profile email';
+    } else if (provider === "auth0") {
+      const scope = "openid profile email";
       authUrl = `https://${auth0Domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=auth0`;
-    } else if (provider === 'linkedin') {
-      const scope = 'r_liteprofile r_emailaddress';
+    } else if (provider === "linkedin") {
+      const scope = "r_liteprofile r_emailaddress";
       authUrl = `https://www.linkedin.com/oauth/v2/authorization?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=linkedin`;
     }
     window.location.href = authUrl;
