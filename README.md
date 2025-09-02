@@ -11,8 +11,9 @@ The frontend is a React application built with Vite and styled with Tailwind CSS
 ## Building and Running
 
 ### Prerequisites
-*   Node.js
-*   npm
+
+- Node.js
+- npm
 
 ### Development
 
@@ -71,6 +72,7 @@ npm run deploy
 This script uses Google Cloud Build to build the Docker image and deploy it to Cloud Run.
 
 ## Development Conventions
-*   **Code Style:** The project uses Prettier for code formatting.
-*   **Testing:** Backend tests are implemented using Jest and ts-jest.
-*   **Commits:** There are no specific commit message conventions enforced.
+
+- **Code Style:** The project uses Prettier for code formatting.
+- **Testing:** Backend tests are implemented using Jest and ts-jest.
+- **Commits:** There are no specific commit message conventions enforced.

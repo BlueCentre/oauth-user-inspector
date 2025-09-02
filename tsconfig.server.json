@@ -13,5 +13,11 @@
     "esModuleInterop": true,
     "moduleResolution": "node"
   },
-  "include": ["server.ts", "logger.ts", "types/**/*", "start.ts", "__tests__/**/*"]
+  "include": [
+    "server.ts",
+    "logger.ts",
+    "types/**/*",
+    "start.ts",
+    "__tests__/**/*"
+  ]
 }

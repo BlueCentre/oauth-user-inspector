@@ -4,10 +4,10 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
     "./*.tsx",
-    "./components/**/*.tsx"
+    "./components/**/*.tsx",
   ],
   theme: {
     extend: {},
   },
   plugins: [],
-}
+};

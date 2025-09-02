@@ -12,8 +12,8 @@ The project is configured for deployment to Google Cloud Run using Docker and Go
 
 ### Prerequisites
 
-*   Node.js
-*   npm
+- Node.js
+- npm
 
 ### Development
 
@@ -53,6 +53,6 @@ This script uses Google Cloud Build to build the Docker image and deploy it to C
 
 ## Development Conventions
 
-*   **Code Style:** The project uses Prettier for code formatting.
-*   **Testing:** There are no testing frameworks configured in the project.
-*   **Commits:** There are no specific commit message conventions enforced.
+- **Code Style:** The project uses Prettier for code formatting.
+- **Testing:** There are no testing frameworks configured in the project.
+- **Commits:** There are no specific commit message conventions enforced.
