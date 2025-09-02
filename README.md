@@ -72,5 +72,5 @@ This script uses Google Cloud Build to build the Docker image and deploy it to C
 
 ## Development Conventions
 *   **Code Style:** The project uses Prettier for code formatting.
-*   **Testing:** There are no testing frameworks configured in the project.
+*   **Testing:** Backend tests are implemented using Jest and ts-jest.
 *   **Commits:** There are no specific commit message conventions enforced.
