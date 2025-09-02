@@ -32,7 +32,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
   };
 
   return (
-    <div className="bg-slate-800 p-8 rounded-xl shadow-2xl ring-1 ring-white/10 w-full max-w-2xl transition-all duration-300">
+    <div className="bg-slate-800 p-8 rounded-xl shadow-2xl ring-1 ring-white/10 w-full max-w-2xl mx-auto transition-all duration-300">
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-white tracking-tight">
           OAuth User Inspector

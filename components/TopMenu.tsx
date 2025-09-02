@@ -1,0 +1,176 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { MenuIcon } from './icons';
+
+interface TopMenuProps {
+  userLoggedIn: boolean;
+  importedSnapshot: any | null;
+  onImportSnapshot: (file: File) => void;
+  onClearSnapshot: () => void;
+  onToggleSafeMode: () => void;
+  safeMode: boolean;
+  onLogout: () => void;
+  onShowHelp: () => void;
+  runDiagnostics: () => void;
+  hasError: boolean;
+}
+
+/*
+ * Collapsible hamburger menu to reduce button clutter.
+ * Mobile: shows only hamburger; expanded panel slides down.
+ * Desktop: inline buttons, with hamburger to optionally collapse/expand if desired.
+ */
+const TopMenu: React.FC<TopMenuProps> = ({
+  userLoggedIn,
+  importedSnapshot,
+  onImportSnapshot,
+  onClearSnapshot,
+  onToggleSafeMode,
+  safeMode,
+  onLogout,
+  onShowHelp,
+  runDiagnostics,
+  hasError,
+}) => {
+  const [open, setOpen] = useState<boolean>(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (open && containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Keyboard accessibility for Esc to close
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpen(false); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
+  const triggerFileDialog = () => fileInputRef.current?.click();
+
+  const panelId = 'topmenu-panel';
+  const firstFocusable = useRef<HTMLButtonElement | null>(null);
+  const lastFocusable = useRef<HTMLButtonElement | null>(null);
+
+  // Focus management when opening
+  useEffect(() => {
+    if (open && firstFocusable.current) {
+      firstFocusable.current.focus();
+    }
+  }, [open]);
+
+  // Simple focus trap
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (!open) return;
+      if (e.key === 'Tab') {
+        const focusables = Array.from(containerRef.current?.querySelectorAll<HTMLElement>("[data-focusable='true']"))
+          .filter(el => !el.hasAttribute('disabled'));
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          (last as HTMLElement).focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          (first as HTMLElement).focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [open]);
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        onClick={() => setOpen(o => !o)}
+        aria-label={open ? 'Close menu' : 'Open menu'}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className="p-2 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 inline-flex items-center gap-2 bg-slate-800/70 shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-500"
+      >
+        <div className="relative">
+          <MenuIcon className="w-5 h-5" />
+          {importedSnapshot && (
+            <span className="absolute -top-1 -right-1 inline-block w-2 h-2 rounded-full bg-amber-400 shadow ring-1 ring-slate-900/70" aria-label="Snapshot loaded" />
+          )}
+        </div>
+        <span className="hidden sm:inline text-sm">Menu</span>
+      </button>
+      {open && (
+        <div
+          id={panelId}
+          role="menu"
+          aria-label="Application actions"
+          className="absolute right-0 mt-2 w-64 sm:w-72 origin-top-right animate-fadeIn border border-slate-700 rounded-lg bg-slate-900 p-4 shadow-xl flex flex-col gap-4 ring-1 ring-slate-800/60"
+        >
+          <div className="flex items-center gap-2" role="group" aria-label="Snapshot actions">
+            <button
+              ref={firstFocusable}
+              data-focusable="true"
+              onClick={triggerFileDialog}
+              className="text-xs px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800/70 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >Import Snapshot</button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              className="hidden"
+              onChange={e => e.target.files && e.target.files[0] && onImportSnapshot(e.target.files[0])}
+            />
+            {importedSnapshot && (
+              <button
+                data-focusable="true"
+                onClick={onClearSnapshot}
+                className="text-xs px-2 py-1 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >Clear</button>
+            )}
+          </div>
+          {userLoggedIn && (
+            <div className="flex flex-col gap-2" role="group" aria-label="Session actions">
+              <button
+                data-focusable="true"
+                onClick={onToggleSafeMode}
+                className={`px-3 py-1.5 text-xs rounded-md border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 ${safeMode ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}`}
+              >{safeMode ? 'Safe Mode On' : 'Safe Mode Off'}</button>
+              <button
+                data-focusable="true"
+                onClick={onLogout}
+                className="px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >Logout</button>
+            </div>
+          )}
+          <div className="flex flex-col gap-2" role="group" aria-label="Help & diagnostics">
+            <button
+              data-focusable="true"
+              onClick={onShowHelp}
+              className="px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+            >Help & Shortcuts</button>
+            {hasError && (
+              <button
+                data-focusable="true"
+                ref={lastFocusable}
+                onClick={runDiagnostics}
+                className="px-3 py-1.5 text-xs rounded-md border border-red-400/50 text-red-300 hover:bg-red-800/40 focus:outline-none focus:ring-2 focus:ring-red-400"
+              >Diagnose</button>
+            )}
+            {!hasError && (
+              <span ref={lastFocusable} tabIndex={-1} />
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default TopMenu;

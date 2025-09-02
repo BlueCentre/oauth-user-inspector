@@ -41,3 +41,4 @@ coverage/
 .env.test
 /.parcel-cache
 .cache
+.playwright-mcp/

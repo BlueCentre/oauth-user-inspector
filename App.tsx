@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import type { AppUser, AuthProvider, ProviderGitHubUser, ProviderGoogleUser } from './types';
 import { Spinner } from './components/icons';
+import TopMenu from './components/TopMenu';
 import UserInfoDisplay from './components/UserInfoDisplay';
 import HelpModal from './components/HelpModal';
 import LoginScreen from './components/LoginScreen';
@@ -70,7 +71,7 @@ const App: React.FC = () => {
           },
         });
       } else if (provider === 'google') {
-         response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
+        response = await fetch('https://www.googleapis.com/oauth2/v1/userinfo?alt=json', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -335,43 +336,12 @@ const App: React.FC = () => {
     if (user) {
       return (
         <>
-          <div className="w-full flex justify-end mb-4">
-            <div className="flex items-center gap-2 mr-auto">
-              <label className="text-xs px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800/60 text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors">
-                Import Snapshot
-                <input type="file" accept="application/json" className="hidden" onChange={e => e.target.files && e.target.files[0] && handleSnapshotImport(e.target.files[0])} />
-              </label>
-              {importedSnapshot && (
-                <button onClick={clearSnapshot} className="text-xs px-2 py-1 rounded border border-slate-600 text-slate-300 hover:bg-slate-700">Clear Snapshot</button>
-              )}
-            </div>
-            <button
-              onClick={toggleSafeMode}
-              className={`mr-3 px-4 py-2 border text-sm font-medium rounded-md transition-all ${safeMode ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}`}
-              title="Mask personally identifiable data"
-            >
-              {safeMode ? 'Safe Mode On' : 'Safe Mode Off'}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all"
-            >
-              Logout
-            </button>
-          </div>
           <UserInfoDisplay user={user} safeMode={safeMode} importedSnapshot={importedSnapshot} />
         </>
       );
     }
-    
     return (
       <div className="w-full">
-        <div className="flex justify-end mb-6">
-          <label className="text-xs px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800/60 text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors">
-            Import Snapshot
-            <input type="file" accept="application/json" className="hidden" onChange={e => e.target.files && e.target.files[0] && handleSnapshotImport(e.target.files[0])} />
-          </label>
-        </div>
         {importedSnapshot && (
           <div className="mb-6 p-4 border border-slate-600 rounded-lg bg-slate-800/60 text-xs text-slate-300">
             <p className="font-semibold mb-2">Imported Snapshot Preview</p>
@@ -385,16 +355,32 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-900 text-slate-200">
-      <main className="w-full max-w-4xl mx-auto flex flex-col items-center">
+    <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
+      <header className="w-full border-b border-slate-800/60 bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
+        <div className="mx-auto max-w-4xl px-4 py-3 flex justify-end">
+          <TopMenu
+            userLoggedIn={!!user}
+            importedSnapshot={importedSnapshot}
+            onImportSnapshot={handleSnapshotImport}
+            onClearSnapshot={clearSnapshot}
+            onToggleSafeMode={toggleSafeMode}
+            safeMode={safeMode}
+            onLogout={handleLogout}
+            onShowHelp={() => setShowHelp(true)}
+            runDiagnostics={runDiagnostics}
+            hasError={!!error}
+          />
+        </div>
+      </header>
+      <main className="flex-1 w-full py-8">
         {error && (
-          <div className="w-full p-4 mb-4 bg-red-900/50 border border-red-500/50 text-red-300 rounded-lg space-y-2" role="alert">
+          <div className="w-full p-4 mb-6 bg-red-900/40 border border-red-500/40 text-red-300 rounded-lg space-y-2" role="alert">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="font-bold">Error</p>
                 <p>{error}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 shrink-0">
                 <button
                   onClick={runDiagnostics}
                   className="px-3 py-1.5 text-xs rounded-md border border-red-400/40 bg-red-800/40 hover:bg-red-800/60 text-red-200"
@@ -408,11 +394,17 @@ const App: React.FC = () => {
             {diagnostics && <p className="text-xs text-red-200/80">{diagnostics}</p>}
           </div>
         )}
-        {renderContent()}
+        <div className="mx-auto max-w-4xl px-4">
+          <div className="mx-auto max-w-2xl">
+            {renderContent()}
+          </div>
+        </div>
       </main>
-      <footer className="text-center text-sm text-slate-600 mt-12 flex flex-col items-center gap-2">
-        <p>Built for demonstration and troubleshooting.</p>
-        <button onClick={() => setShowHelp(true)} className="text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700">Help & Shortcuts</button>
+      <footer className="w-full border-t border-slate-800/60 mt-8">
+        <div className="mx-auto max-w-4xl px-4 py-6 text-center text-sm text-slate-600 flex flex-col items-center gap-2">
+          <p>Built for demonstration and troubleshooting.</p>
+          <button onClick={() => setShowHelp(true)} className="text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700">Help & Shortcuts</button>
+        </div>
       </footer>
       <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
     </div>
