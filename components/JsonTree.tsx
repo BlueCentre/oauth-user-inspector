@@ -58,7 +58,35 @@ const JsonNode: React.FC<JsonTreeProps> = ({ data, level = 0, path = '' }) => {
 };
 
 const JsonTree: React.FC<{ data: any }> = ({ data }) => {
-  return <JsonNode data={data} />;
+  const [expandAllToggle, setExpandAllToggle] = useState<number>(0);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyAll = async () => {
+    await navigator.clipboard.writeText(JSON.stringify(data, null, 2));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
+  return (
+    <div>
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          className="text-[11px] px-2 py-1 rounded border border-slate-600 text-slate-300 hover:bg-slate-700"
+          onClick={() => setExpandAllToggle(v => v + 1)}
+          title="Expand all"
+        >Expand/Collapse</button>
+        <button
+          className="text-[11px] px-2 py-1 rounded border border-slate-600 text-slate-300 hover:bg-slate-700"
+          onClick={handleCopyAll}
+          title="Copy JSON"
+        >{copied ? 'Copied' : 'Copy all'}</button>
+      </div>
+      {/* re-mount node to reset open state on toggle */}
+      <div key={expandAllToggle}>
+        <JsonNode data={data} />
+      </div>
+    </div>
+  );
 };
 
 export default JsonTree;
