@@ -18,6 +18,7 @@ COPY types.ts ./
 COPY types/ ./types/
 COPY server.ts ./
 COPY logger.ts ./
+COPY fieldDocs.ts ./
 COPY tsconfig*.json ./
 COPY vite.config.ts ./
 COPY postcss.config.js ./
