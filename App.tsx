@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { AppUser, AuthProvider, ProviderGitHubUser, ProviderGoogleUser } from './types';
 import { Spinner } from './components/icons';
 import UserInfoDisplay from './components/UserInfoDisplay';
+import HelpModal from './components/HelpModal';
 import LoginScreen from './components/LoginScreen';
 
 const getRedirectUri = () => window.location.origin + window.location.pathname;
@@ -11,6 +12,7 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<string | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const runDiagnostics = async () => {
     try {
       setDiagnostics('Running diagnostics...');
@@ -379,9 +381,11 @@ const App: React.FC = () => {
         )}
         {renderContent()}
       </main>
-      <footer className="text-center text-sm text-slate-600 mt-12">
+      <footer className="text-center text-sm text-slate-600 mt-12 flex flex-col items-center gap-2">
         <p>Built for demonstration and troubleshooting.</p>
+        <button onClick={() => setShowHelp(true)} className="text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700">Help & Shortcuts</button>
       </footer>
+      <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
     </div>
   );
 };
