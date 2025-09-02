@@ -10,6 +10,21 @@ const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [diagnostics, setDiagnostics] = useState<string | null>(null);
+  const runDiagnostics = async () => {
+    try {
+      setDiagnostics('Running diagnostics...');
+      const resp = await fetch('/api/health');
+      if (!resp.ok) {
+        setDiagnostics(`Health endpoint error: ${resp.status}`);
+        return;
+      }
+      const data = await resp.json();
+      setDiagnostics(`Health OK (uptime: ${Math.round(data.uptime)}s)`);
+    } catch (e: any) {
+      setDiagnostics(`Diagnostics failed: ${e.message}`);
+    }
+  };
   const [safeMode, setSafeMode] = useState<boolean>(() => {
     return localStorage.getItem('safe_mode') === 'true';
   });
@@ -301,9 +316,24 @@ const App: React.FC = () => {
     <div className="min-h-screen flex flex-col items-center justify-center p-4 bg-slate-900 text-slate-200">
       <main className="w-full max-w-4xl mx-auto flex flex-col items-center">
         {error && (
-          <div className="w-full p-4 mb-4 bg-red-900/50 border border-red-500/50 text-red-300 rounded-lg" role="alert">
-            <p className="font-bold">Error</p>
-            <p>{error}</p>
+          <div className="w-full p-4 mb-4 bg-red-900/50 border border-red-500/50 text-red-300 rounded-lg space-y-2" role="alert">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="font-bold">Error</p>
+                <p>{error}</p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={runDiagnostics}
+                  className="px-3 py-1.5 text-xs rounded-md border border-red-400/40 bg-red-800/40 hover:bg-red-800/60 text-red-200"
+                >Diagnose</button>
+                <button
+                  onClick={() => setError(null)}
+                  className="px-3 py-1.5 text-xs rounded-md border border-red-400/40 bg-red-800/40 hover:bg-red-800/60 text-red-200"
+                >Dismiss</button>
+              </div>
+            </div>
+            {diagnostics && <p className="text-xs text-red-200/80">{diagnostics}</p>}
           </div>
         )}
         {renderContent()}
