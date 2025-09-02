@@ -198,13 +198,25 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
                 {tableEntries.map(({ key, value }) => {
                   const display = renderPrimitive(value);
                   const isLink = typeof value === 'string' && isUrl(value);
+                  const plainValue = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value);
                   return (
                     <tr key={key} className="border-t border-slate-700/60 hover:bg-slate-700/30">
                       <td className="py-2 pr-3 align-top text-slate-300 font-mono text-[11px] sm:text-xs break-all">{key}</td>
                       <td className="py-2 align-top text-slate-100 text-[11px] sm:text-xs break-all">
-                        {isLink ? (
-                          <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">Link</a>
-                        ) : display || <span className="text-slate-500">(object)</span>}
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            {isLink ? (
+                              <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">Link</a>
+                            ) : display || <span className="text-slate-500">(object)</span>}
+                          </div>
+                          <button
+                            onClick={() => navigator.clipboard.writeText(plainValue)}
+                            className="shrink-0 p-1 rounded bg-slate-700/50 hover:bg-slate-600 text-slate-300 border border-slate-600"
+                            title="Copy value"
+                          >
+                            <ClipboardIcon className="w-3 h-3" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
