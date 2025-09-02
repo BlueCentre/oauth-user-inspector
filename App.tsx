@@ -14,6 +14,31 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toLowerCase().includes('mac');
+      if ((isMac && e.metaKey && e.key.toLowerCase() === 'k') || (!isMac && e.ctrlKey && e.key.toLowerCase() === 'k')) {
+        e.preventDefault();
+        const btn = document.querySelector('[aria-label="Open menu"]') as HTMLButtonElement | null;
+        if (btn) btn.click();
+      }
+      if (e.key === '?') {
+        e.preventDefault();
+        setShowHelp(true);
+      }
+      if (e.key.toLowerCase() === 'g') {
+        const tabTriggers = Array.from(document.querySelectorAll('button'))
+          .filter(el => el.textContent?.trim() === 'GitHub' || el.textContent?.trim() === 'Google');
+        if (tabTriggers.length === 2) {
+          e.preventDefault();
+          (tabTriggers[0] as HTMLButtonElement).click();
+        }
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
   const runDiagnostics = async () => {
     try {
       setDiagnostics('Running diagnostics...');
