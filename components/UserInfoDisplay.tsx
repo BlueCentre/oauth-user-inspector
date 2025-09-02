@@ -28,6 +28,8 @@ const ProviderIcon: React.FC<{ provider: AppUser['provider']; className?: string
 
 const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
   const [isCopied, setIsCopied] = useState(false);
+  const [tokenVisible, setTokenVisible] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(user.rawData, null, 2)).then(() => {
@@ -36,6 +38,14 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
     }, (err) => {
       console.error('Could not copy text: ', err);
     });
+  };
+
+  const handleCopyToken = () => {
+    if (!user.accessToken) return;
+    navigator.clipboard.writeText(user.accessToken).then(() => {
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    }).catch(err => console.error('Could not copy token', err));
   };
 
   // Build a stable ordered list of top-level primitive fields for table view
@@ -84,9 +94,27 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
             {user.email && <p className="text-slate-400 break-all">{user.email}</p>}
           </div>
           {user.accessToken && (
-            <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 text-left">
-              <h4 className="text-xs uppercase tracking-wide text-slate-400 mb-1">Access Token</h4>
-              <code className="text-[10px] sm:text-xs break-all text-slate-300 select-all">{user.accessToken}</code>
+            <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 text-left space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-xs uppercase tracking-wide text-slate-400">Access Token</h4>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setTokenVisible(v => !v)}
+                    className="text-[10px] px-2 py-1 rounded bg-slate-700/60 border border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    {tokenVisible ? 'Hide' : 'Show'}
+                  </button>
+                  <button
+                    onClick={handleCopyToken}
+                    className="text-[10px] px-2 py-1 rounded bg-slate-700/60 border border-slate-600 text-slate-300 hover:bg-slate-700"
+                  >
+                    {tokenCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+              </div>
+              <code className="block text-[10px] sm:text-xs break-all text-slate-300 select-all">
+                {tokenVisible ? user.accessToken : user.accessToken.replace(/.(?=.{4})/g, '•')}
+              </code>
             </div>
           )}
         </div>
