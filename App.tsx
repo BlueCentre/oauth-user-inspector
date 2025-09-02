@@ -356,7 +356,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-900 text-slate-200">
-      <header className="w-full border-b border-slate-800/60 bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60">
+      <header className="sticky top-0 z-40 w-full border-b border-slate-800/60 bg-slate-900/70 backdrop-blur supports-[backdrop-filter]:bg-slate-900/60/90">
         <div className="mx-auto max-w-4xl px-4 py-3 flex justify-end">
           <TopMenu
             userLoggedIn={!!user}
