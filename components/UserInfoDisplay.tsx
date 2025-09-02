@@ -4,6 +4,7 @@ import { GithubIcon, GoogleIcon, ClipboardIcon, ClipboardCheckIcon } from './ico
 
 interface UserInfoDisplayProps {
   user: AppUser;
+  safeMode?: boolean;
 }
 
 const isUrl = (val: string) => /^https?:\/\//i.test(val);
@@ -26,7 +27,7 @@ const ProviderIcon: React.FC<{ provider: AppUser['provider']; className?: string
     }
 };
 
-const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
+const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = false }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
@@ -114,7 +115,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
         <div className="mt-4 sm:mt-0 sm:ml-6 w-full">
           <div className="flex items-center justify-center sm:justify-start gap-3 flex-wrap">
              <ProviderIcon provider={user.provider} className="w-8 h-8 text-white" />
-             <h2 className="text-3xl font-bold text-white break-all">{user.name || user.username}</h2>
+             <h2 className="text-3xl font-bold text-white break-all">{safeMode ? '••••••' : (user.name || user.username)}</h2>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center sm:gap-4 mt-2">
             <a
@@ -123,11 +124,11 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
               rel="noopener noreferrer"
               className="text-lg text-blue-400 hover:text-blue-300 break-all"
             >
-              @{user.username}
+              @{safeMode ? 'masked' : user.username}
             </a>
-            {user.email && <p className="text-slate-400 break-all">{user.email}</p>}
+            {user.email && <p className="text-slate-400 break-all">{safeMode ? 'hidden@example.com' : user.email}</p>}
           </div>
-          {user.accessToken && (
+          {user.accessToken && !safeMode && (
             <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 text-left space-y-2">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs uppercase tracking-wide text-slate-400">Access Token</h4>

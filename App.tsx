@@ -10,6 +10,13 @@ const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [safeMode, setSafeMode] = useState<boolean>(() => {
+    return localStorage.getItem('safe_mode') === 'true';
+  });
+  const toggleSafeMode = () => {
+    setSafeMode(v => {
+      const nv = !v; localStorage.setItem('safe_mode', String(nv)); return nv; });
+  };
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('auth_details');
@@ -269,13 +276,20 @@ const App: React.FC = () => {
         <>
           <div className="w-full flex justify-end mb-4">
             <button
+              onClick={toggleSafeMode}
+              className={`mr-3 px-4 py-2 border text-sm font-medium rounded-md transition-all ${safeMode ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}`}
+              title="Mask personally identifiable data"
+            >
+              {safeMode ? 'Safe Mode On' : 'Safe Mode Off'}
+            </button>
+            <button
               onClick={handleLogout}
               className="px-4 py-2 border border-slate-600 text-sm font-medium rounded-md text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 transition-all"
             >
               Logout
             </button>
           </div>
-          <UserInfoDisplay user={user} />
+          <UserInfoDisplay user={user} safeMode={safeMode} />
         </>
       );
     }
