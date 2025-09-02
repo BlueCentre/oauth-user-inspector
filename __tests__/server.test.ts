@@ -122,3 +122,12 @@ describe('/api/oauth/token', () => {
     expect(response.body).toHaveProperty('error');
   });
 });
+
+describe('/api/health', () => {
+  it('should return ok health status', async () => {
+    const response = await request(app).get('/api/health');
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('status', 'ok');
+    expect(typeof response.body.uptime).toBe('number');
+  });
+});

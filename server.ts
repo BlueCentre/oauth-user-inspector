@@ -286,6 +286,16 @@ app.post('/api/oauth-hosted/init', async (req: Request, res: Response) => {
     // This endpoint is now consolidated into /api/oauth/token
     // app.post('/api/oauth-hosted/token', ...);
 
+// Lightweight health / readiness endpoint
+app.get('/api/health', (req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: Date.now(),
+    node: process.version
+  });
+});
+
 // --- Static file serving & SPA Fallback ---
 // Use process.cwd() so tests and production builds resolve consistently
 const baseDir = process.cwd();
