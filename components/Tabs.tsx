@@ -1,4 +1,4 @@
-import React, { useState, ReactNode } from 'react';
+import React, { useState, ReactNode, useEffect } from 'react';
 
 interface TabProps {
   label: string;
@@ -16,7 +16,14 @@ interface TabsProps {
 }
 
 const Tabs: React.FC<TabsProps> = ({ children }) => {
-  const [activeTab, setActiveTab] = useState(0);
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('active_provider_tab');
+    return saved ? Number(saved) : 0;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('active_provider_tab', String(activeTab));
+  }, [activeTab]);
 
   return (
     <div>
