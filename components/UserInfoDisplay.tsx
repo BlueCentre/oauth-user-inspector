@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AppUser } from '../types';
 import { GithubIcon, GoogleIcon, ClipboardIcon, ClipboardCheckIcon } from './icons';
+import { getFieldDoc } from '../fieldDocs';
 import JsonTree from './JsonTree';
 
 interface UserInfoDisplayProps {
@@ -237,9 +238,25 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
                   const display = renderPrimitive(value);
                   const isLink = typeof value === 'string' && isUrl(value);
                   const plainValue = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value);
+                  const doc = getFieldDoc(user.provider, key);
                   return (
                     <tr key={key} className="border-t border-slate-700/60 hover:bg-slate-700/30">
-                      <td className="py-2 pr-3 align-top text-slate-300 font-mono text-[11px] sm:text-xs break-all">{key}</td>
+                      <td className="py-2 pr-3 align-top text-slate-300 font-mono text-[11px] sm:text-xs break-all">
+                        <div className="flex items-start gap-1 group">
+                          <span>{key}</span>
+                          {doc && (
+                            <span
+                              className="relative inline-block"
+                            >
+                              <span
+                                className="w-3 h-3 mt-[2px] text-[9px] leading-none flex items-center justify-center rounded-full bg-slate-600 text-slate-100 cursor-help group-hover:bg-slate-500"
+                                title={`${doc.description}${doc.docsUrl ? `\nDocs: ${doc.docsUrl}` : ''}`}
+                                aria-label={`Field info: ${doc.description}`}
+                              >i</span>
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-2 align-top text-slate-100 text-[11px] sm:text-xs break-all">
                         <div className="flex items-start gap-2">
                           <div className="flex-1 min-w-0">
