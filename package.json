@@ -16,7 +16,7 @@
     "preview": "vite preview",
     "test": "jest",
     "setup-dev": "sh scripts/setup-dev.sh",
-    "cleanup:untrack-builds": "git rm -r --cached dist dist-server || true && git add .gitignore && git commit -m \"chore: untrack build outputs\" || true"
+    "cleanup:untrack-builds": "git rm -r --cached dist dist-server && git add .gitignore && (git diff --cached --quiet || git commit -m \"chore: untrack build outputs\")"
   },
   "dependencies": {
     "@google-cloud/logging-winston": "^5.3.0",
