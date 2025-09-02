@@ -2,7 +2,13 @@
 
 This repository includes a small pre-commit safety script that prevents accidentally committing local environment files (like `.env`) and build outputs (`dist`, `dist-server`).
 
-To enable it locally run:
+To enable it locally run the included npm helper which installs the hook:
+
+```bash
+npm run setup-dev
+```
+
+Alternatively, you can install the hook manually (equivalent):
 
 ```bash
 # Make the repo hooks directory if needed
