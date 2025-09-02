@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AppUser } from '../types';
 import { GithubIcon, GoogleIcon, ClipboardIcon, ClipboardCheckIcon } from './icons';
 
@@ -81,6 +81,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
 
   // Build a stable ordered list of top-level primitive fields for table view
   const [search, setSearch] = useState('');
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
   const tableEntries = useMemo(() => {
     const raw: Record<string, any> = user.rawData as any;
     // Only show primitive (string/number/boolean/null) top-level keys; skip objects unless known URL
@@ -102,6 +103,25 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
     const q = search.toLowerCase();
     return entries.filter(e => (e.key.toLowerCase().includes(q) || String(e.value).toLowerCase().includes(q)));
   }, [user.rawData, search]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const meta = e.metaKey || e.ctrlKey; // Support Cmd (mac) and Ctrl (win/linux)
+      if (meta && e.key.toLowerCase() === 'k') { // Cmd+K focus search
+        e.preventDefault();
+        if (searchInputRef.current) searchInputRef.current.focus();
+      } else if (meta && e.key.toLowerCase() === 'e') { // Cmd+E export
+        e.preventDefault();
+        exportSnapshot();
+      } else if (meta && e.shiftKey && e.key.toLowerCase() === 'c') { // Cmd+Shift+C copy JSON
+        e.preventDefault();
+        handleCopy();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [exportSnapshot, handleCopy]);
 
   return (
     <div className="mt-8 w-full animate-fade-in">
@@ -185,6 +205,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Filter (key or value)"
+                ref={searchInputRef}
                 className="w-full sm:w-64 text-sm px-3 py-1.5 bg-slate-900/70 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-slate-200 placeholder-slate-500"
               />
             </div>
