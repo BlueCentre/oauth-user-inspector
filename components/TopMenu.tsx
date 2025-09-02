@@ -113,12 +113,21 @@ const TopMenu: React.FC<TopMenuProps> = ({
           aria-label="Application actions"
           className="absolute right-0 mt-2 w-64 sm:w-72 origin-top-right animate-fadeIn border border-slate-700 rounded-lg bg-slate-900 p-4 shadow-xl flex flex-col gap-4 ring-1 ring-slate-800/60"
         >
-          <div className="flex items-center gap-2" role="group" aria-label="Snapshot actions">
+          {/**
+           * Shared class tokens for consistent button styling
+           */}
+          {(() => {
+            // No runtime effect; used to co-locate classnames for readability.
+            // itemBtn: unified neutral pill button style
+            // dangerBtn: red-accented diagnostic button
+          })()}
+          
+          <div className="flex flex-col gap-2" role="group" aria-label="Snapshot actions">
             <button
               ref={firstFocusable}
               data-focusable="true"
               onClick={triggerFileDialog}
-              className="text-xs px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800/70 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+              className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
             >Import Snapshot</button>
             <input
               ref={fileInputRef}
@@ -131,8 +140,8 @@ const TopMenu: React.FC<TopMenuProps> = ({
               <button
                 data-focusable="true"
                 onClick={onClearSnapshot}
-                className="text-xs px-2 py-1 rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
-              >Clear</button>
+                className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+              >Clear Snapshot</button>
             )}
           </div>
           {userLoggedIn && (
@@ -140,12 +149,12 @@ const TopMenu: React.FC<TopMenuProps> = ({
               <button
                 data-focusable="true"
                 onClick={onToggleSafeMode}
-                className={`px-3 py-1.5 text-xs rounded-md border font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 ${safeMode ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}`}
+                className={`w-full px-3 py-1.5 text-xs rounded-md border font-medium text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 ${safeMode ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30' : 'border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40'}`}
               >{safeMode ? 'Safe Mode On' : 'Safe Mode Off'}</button>
               <button
                 data-focusable="true"
                 onClick={onLogout}
-                className="px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
               >Logout</button>
             </div>
           )}
@@ -153,14 +162,14 @@ const TopMenu: React.FC<TopMenuProps> = ({
             <button
               data-focusable="true"
               onClick={onShowHelp}
-              className="px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-slate-500"
+              className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
             >Help & Shortcuts</button>
             {hasError && (
               <button
                 data-focusable="true"
                 ref={lastFocusable}
                 onClick={runDiagnostics}
-                className="px-3 py-1.5 text-xs rounded-md border border-red-400/50 text-red-300 hover:bg-red-800/40 focus:outline-none focus:ring-2 focus:ring-red-400"
+                className="w-full px-3 py-1.5 text-xs rounded-md border border-red-400/50 text-red-300 bg-red-900/20 hover:bg-red-900/30 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
               >Diagnose</button>
             )}
             {!hasError && (
