@@ -49,6 +49,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
   };
 
   // Build a stable ordered list of top-level primitive fields for table view
+  const [search, setSearch] = useState('');
   const tableEntries = useMemo(() => {
     const raw: Record<string, any> = user.rawData as any;
     // Only show primitive (string/number/boolean/null) top-level keys; skip objects unless known URL
@@ -65,8 +66,11 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
       if (ai !== -1 && bi !== -1) return ai - bi;
       if (ai !== -1) return -1; if (bi !== -1) return 1; return a.localeCompare(b);
     });
-    return primitiveKeys.map(key => ({ key, value: raw[key] }));
-  }, [user.rawData]);
+    const entries = primitiveKeys.map(key => ({ key, value: raw[key] }));
+    if (!search.trim()) return entries;
+    const q = search.toLowerCase();
+    return entries.filter(e => (e.key.toLowerCase().includes(q) || String(e.value).toLowerCase().includes(q)));
+  }, [user.rawData, search]);
 
   return (
     <div className="mt-8 w-full animate-fade-in">
@@ -124,7 +128,16 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
         <div className="grid md:grid-cols-2 gap-0">
           {/* Structured Table */}
           <div className="p-6 border-b md:border-b-0 md:border-r border-slate-700 overflow-x-auto">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Provider Data Dump</h3>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h3 className="text-xl font-semibold text-slate-200">Provider Data Dump</h3>
+              <input
+                type="text"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Filter (key or value)"
+                className="w-full sm:w-64 text-sm px-3 py-1.5 bg-slate-900/70 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-slate-200 placeholder-slate-500"
+              />
+            </div>
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="text-slate-400 text-xs uppercase tracking-wide">
@@ -147,6 +160,11 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
                     </tr>
                   );
                 })}
+                {tableEntries.length === 0 && (
+                  <tr>
+                    <td colSpan={2} className="py-4 text-center text-slate-500 text-xs">No matching fields</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
