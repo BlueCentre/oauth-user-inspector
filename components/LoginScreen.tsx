@@ -86,6 +86,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
               <p className="text-sm text-slate-400 mb-2">
                 Create a <a href="https://github.com/settings/developers" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">New OAuth App</a> and set the "Authorization callback URL" to:
               </p>
+              <div className="flex gap-2 mb-3">
+                <a href="https://github.com/settings/developers" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-800/70 hover:bg-slate-700">
+                  <GithubIcon className="w-4 h-4"/> Open GitHub OAuth settings
+                </a>
+              </div>
               <div className="flex items-center justify-between text-sm bg-slate-700 p-2 rounded-md mb-4">
                   <code className="text-xs text-slate-300 truncate">{getRedirectUri()}</code>
                   <button
@@ -220,6 +225,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
               <p className="text-sm text-slate-400 mb-2">
                 Create OAuth credentials in the <a href="https://console.developers.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Google API Console</a>. Under "Authorized redirect URIs", add:
               </p>
+              <div className="flex gap-2 mb-3">
+                <a href="https://console.developers.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-800/70 hover:bg-slate-700">
+                  <GoogleIcon className="w-4 h-4"/> Open Google Credentials
+                </a>
+              </div>
               <div className="flex items-center justify-between text-sm bg-slate-700 p-2 rounded-md mb-4">
                   <code className="text-xs text-slate-300 truncate">{getRedirectUri()}</code>
                   <button
