@@ -5,6 +5,7 @@ import { GithubIcon, GoogleIcon, ClipboardIcon, ClipboardCheckIcon } from './ico
 interface UserInfoDisplayProps {
   user: AppUser;
   safeMode?: boolean;
+  importedSnapshot?: any | null;
 }
 
 const isUrl = (val: string) => /^https?:\/\//i.test(val);
@@ -27,7 +28,7 @@ const ProviderIcon: React.FC<{ provider: AppUser['provider']; className?: string
     }
 };
 
-const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = false }) => {
+const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = false, importedSnapshot }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
@@ -193,6 +194,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
           >
             Export Snapshot
           </button>
+          {importedSnapshot && (
+            <span className="text-[10px] text-emerald-300 self-center">Snapshot Loaded</span>
+          )}
         </div>
         <div className={viewMode==='both' ? 'grid md:grid-cols-2 gap-0' : ''}>
           {/* Structured Table */}

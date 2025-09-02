@@ -32,6 +32,21 @@ const App: React.FC = () => {
     setSafeMode(v => {
       const nv = !v; localStorage.setItem('safe_mode', String(nv)); return nv; });
   };
+  // Imported snapshot (does not affect authenticated state)
+  const [importedSnapshot, setImportedSnapshot] = useState<any | null>(null);
+  const handleSnapshotImport = (file: File) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const data = JSON.parse(String(reader.result));
+        setImportedSnapshot(data);
+      } catch (e) {
+        setError('Invalid snapshot file.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  const clearSnapshot = () => setImportedSnapshot(null);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('auth_details');
@@ -290,6 +305,15 @@ const App: React.FC = () => {
       return (
         <>
           <div className="w-full flex justify-end mb-4">
+            <div className="flex items-center gap-2 mr-auto">
+              <label className="text-xs px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800/60 text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors">
+                Import Snapshot
+                <input type="file" accept="application/json" className="hidden" onChange={e => e.target.files && e.target.files[0] && handleSnapshotImport(e.target.files[0])} />
+              </label>
+              {importedSnapshot && (
+                <button onClick={clearSnapshot} className="text-xs px-2 py-1 rounded border border-slate-600 text-slate-300 hover:bg-slate-700">Clear Snapshot</button>
+              )}
+            </div>
             <button
               onClick={toggleSafeMode}
               className={`mr-3 px-4 py-2 border text-sm font-medium rounded-md transition-all ${safeMode ? 'bg-amber-500/20 border-amber-500/60 text-amber-300 hover:bg-amber-500/30' : 'border-slate-600 text-slate-300 hover:bg-slate-700'}`}
@@ -304,12 +328,29 @@ const App: React.FC = () => {
               Logout
             </button>
           </div>
-          <UserInfoDisplay user={user} safeMode={safeMode} />
+          <UserInfoDisplay user={user} safeMode={safeMode} importedSnapshot={importedSnapshot} />
         </>
       );
     }
     
-    return <LoginScreen onOAuthLogin={handleOAuthLogin} onPatLogin={handlePatSubmit} onGcloudTokenLogin={handleGcloudTokenSubmit} onHostedOAuthLogin={handleHostedOAuthLogin} isLoading={isLoading} />;
+    return (
+      <div className="w-full">
+        <div className="flex justify-end mb-6">
+          <label className="text-xs px-3 py-1.5 rounded-md border border-slate-600 bg-slate-800/60 text-slate-300 cursor-pointer hover:bg-slate-700 transition-colors">
+            Import Snapshot
+            <input type="file" accept="application/json" className="hidden" onChange={e => e.target.files && e.target.files[0] && handleSnapshotImport(e.target.files[0])} />
+          </label>
+        </div>
+        {importedSnapshot && (
+          <div className="mb-6 p-4 border border-slate-600 rounded-lg bg-slate-800/60 text-xs text-slate-300">
+            <p className="font-semibold mb-2">Imported Snapshot Preview</p>
+            <pre className="max-h-64 overflow-auto whitespace-pre-wrap break-all">{JSON.stringify(importedSnapshot, null, 2)}</pre>
+            <p className="mt-2 text-slate-400">Authenticate to compare snapshot with live user data.</p>
+          </div>
+        )}
+        <LoginScreen onOAuthLogin={handleOAuthLogin} onPatLogin={handlePatSubmit} onGcloudTokenLogin={handleGcloudTokenSubmit} onHostedOAuthLogin={handleHostedOAuthLogin} isLoading={isLoading} />
+      </div>
+    );
   }
 
   return (
