@@ -173,6 +173,17 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
               </code>
             </div>
           )}
+          {(user.scopes || user.tokenType || user.tokenExpiresAt || user.jwtPayload) && (
+            <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 text-left space-y-2">
+              <h4 className="text-xs uppercase tracking-wide text-slate-400">Token Analysis</h4>
+              <ul className="text-[10px] sm:text-xs space-y-1 text-slate-300">
+                {user.tokenType && <li><span className="text-slate-500">Type:</span> {user.tokenType}</li>}
+                {user.scopes && user.scopes.length > 0 && <li><span className="text-slate-500">Scopes:</span> {user.scopes.join(', ')}</li>}
+                {user.tokenExpiresAt && <li><span className="text-slate-500">Expires:</span> {new Date(user.tokenExpiresAt).toLocaleString()} ({Math.max(0, Math.round((user.tokenExpiresAt - Date.now())/1000))}s)</li>}
+                {user.jwtPayload && <li className="break-all"><span className="text-slate-500">JWT aud:</span> {user.jwtPayload.aud || '—'}</li>}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
       {/* Body: table + JSON */}

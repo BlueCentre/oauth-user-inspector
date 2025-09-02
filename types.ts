@@ -72,4 +72,8 @@ export interface AppUser {
   accessToken?: string; // Add access token
   idToken?: string; // Add ID token
   refreshToken?: string; // Add refresh token
+  scopes?: string[]; // OAuth scopes (if available)
+  tokenType?: string; // e.g., bearer
+  tokenExpiresAt?: number; // epoch ms if known
+  jwtPayload?: Record<string, any>; // decoded JWT if token is JWT
 }

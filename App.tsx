@@ -91,33 +91,61 @@ const App: React.FC = () => {
       const rawData = await response.json();
       let appUser: AppUser;
 
+      // Token metadata (if previously stored)
+      let scopes: string[] | undefined;
+      let tokenType: string | undefined;
+      let tokenExpiresAt: number | undefined;
+      let jwtPayload: Record<string, any> | undefined;
+      try {
+        const metaRaw = localStorage.getItem('auth_meta');
+        if (metaRaw) {
+          const meta = JSON.parse(metaRaw);
+            if (meta.scope) scopes = String(meta.scope).split(/[ ,]/).filter(Boolean);
+            if (meta.token_type) tokenType = meta.token_type;
+            if (meta.expires_in && meta.fetched_at) tokenExpiresAt = meta.fetched_at + meta.expires_in * 1000;
+            if (meta.id_token) {
+              const parts = meta.id_token.split('.');
+              if (parts.length === 3) {
+                try { jwtPayload = JSON.parse(atob(parts[1].replace(/-/g,'+').replace(/_/g,'/'))); } catch {}
+              }
+            }
+        }
+      } catch {}
+
       if (provider === 'github') {
-          const githubUser = rawData as ProviderGitHubUser;
-          appUser = {
-              provider: 'github',
-              avatarUrl: githubUser.avatar_url,
-              name: githubUser.name,
-              email: githubUser.email,
-              profileUrl: githubUser.html_url,
-              username: githubUser.login,
-        rawData: githubUser,
-        accessToken: token,
-          };
+        const githubUser = rawData as ProviderGitHubUser;
+        appUser = {
+          provider: 'github',
+          avatarUrl: githubUser.avatar_url,
+          name: githubUser.name,
+          email: githubUser.email,
+          profileUrl: githubUser.html_url,
+          username: githubUser.login,
+          rawData: githubUser,
+          accessToken: token,
+          scopes,
+          tokenType,
+          tokenExpiresAt,
+          jwtPayload,
+        };
       } else if (provider === 'google') {
-          const googleUser = rawData as ProviderGoogleUser;
-          appUser = {
-              provider: 'google',
-              avatarUrl: googleUser.picture,
-              name: googleUser.name,
-              email: googleUser.email,
-              profileUrl: `https://myaccount.google.com/u/0/?authuser=${googleUser.email}`,
-              username: googleUser.email,
-        rawData: googleUser,
-        accessToken: token,
-          };
+        const googleUser = rawData as ProviderGoogleUser;
+        appUser = {
+          provider: 'google',
+          avatarUrl: googleUser.picture,
+          name: googleUser.name,
+          email: googleUser.email,
+          profileUrl: `https://myaccount.google.com/u/0/?authuser=${googleUser.email}`,
+          username: googleUser.email,
+          rawData: googleUser,
+          accessToken: token,
+          scopes,
+          tokenType,
+          tokenExpiresAt,
+          jwtPayload,
+        };
       } else {
-          // Should not happen
-          throw new Error('Provider mapping failed.');
+        throw new Error('Provider mapping failed.');
       }
       setUser(appUser);
     } catch (err: any) {
@@ -175,12 +203,13 @@ const App: React.FC = () => {
         throw new Error(data.error || data.message || 'Token exchange failed on the server.');
       }
 
-      const { access_token } = data;
+      const { access_token, scope, expires_in, token_type, id_token, refresh_token } = data;
       if (!access_token) {
         throw new Error('Access token not found in server response.');
       }
 
       localStorage.setItem('auth_details', JSON.stringify({ token: access_token, provider }));
+      localStorage.setItem('auth_meta', JSON.stringify({ scope, expires_in, token_type, id_token, refresh_token, fetched_at: Date.now() }));
       await fetchUser(access_token, provider);
 
     } catch (err: any) {
