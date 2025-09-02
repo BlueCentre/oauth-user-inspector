@@ -49,6 +49,7 @@ OAuth User Inspector is a full-stack web application designed to inspect OAuth u
 The following are outputs from frequently run commands. Reference them instead of viewing, searching, or running bash commands to save time.
 
 ### Repository Root Structure
+
 ```
 .
 ├── README.md                 # Project documentation
@@ -68,6 +69,7 @@ The following are outputs from frequently run commands. Reference them instead o
 ```
 
 ### Key NPM Scripts
+
 ```json
 {
   "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:server\"",
@@ -84,6 +86,7 @@ The following are outputs from frequently run commands. Reference them instead o
 ```
 
 ### Technology Stack
+
 - **Frontend**: React 18 + Vite 6 + Tailwind CSS 3 + TypeScript
 - **Backend**: Express 4 + Node.js 20 + TypeScript + Winston logging
 - **Testing**: Jest 30 + ts-jest + MSW (Mock Service Worker) + Supertest
@@ -94,6 +97,7 @@ The following are outputs from frequently run commands. Reference them instead o
 ### Important File Locations
 
 **Frontend Components** (`/components/`):
+
 - `LoginScreen.tsx` - Main OAuth provider selection interface
 - `UserInfoDisplay.tsx` - Display user data after authentication
 - `JsonTree.tsx` - JSON data visualization component
@@ -102,11 +106,13 @@ The following are outputs from frequently run commands. Reference them instead o
 - `icons.tsx` - SVG icon components
 
 **Backend Files**:
+
 - `server.ts` - Express application with OAuth token exchange endpoints
 - `logger.ts` - Structured logging with Google Cloud integration
 - `__tests__/server.test.ts` - API endpoint tests with MSW mocking
 
 **Configuration Files**:
+
 - `tsconfig.json` - Frontend TypeScript configuration
 - `tsconfig.server.json` - Backend TypeScript configuration
 - `vite.config.ts` - Vite bundler configuration with proxy setup
@@ -114,6 +120,7 @@ The following are outputs from frequently run commands. Reference them instead o
 - `tailwind.config.js` - Tailwind CSS styling configuration
 
 ### API Endpoints
+
 - `POST /api/oauth/token` - Exchange OAuth code for access token
 - `GET /api/health` - Health check endpoint
 - Static files served from `/dist/` directory
@@ -121,12 +128,14 @@ The following are outputs from frequently run commands. Reference them instead o
 ### Development Workflows
 
 **Making Frontend Changes**:
+
 1. Edit files in `/components/`, `App.tsx`, or `/types/`
 2. Vite hot reload automatically updates the browser
 3. Test in browser at http://localhost:5173/
 4. Run `npx prettier --write .` before committing
 
 **Making Backend Changes**:
+
 1. Edit `server.ts`, `logger.ts`, or files in `/types/`
 2. Nodemon automatically rebuilds and restarts the server
 3. Test API endpoints with curl or frontend integration
@@ -134,12 +143,14 @@ The following are outputs from frequently run commands. Reference them instead o
 5. Run `npx prettier --write .` before committing
 
 **Adding Tests**:
+
 - Backend tests go in `__tests__/*.test.ts`
 - Use MSW for mocking external API calls
 - Tests mock Google Cloud services (Secret Manager, Logging)
 - No frontend tests are currently configured
 
 ### Deployment Notes
+
 - Application deploys to Google Cloud Run via Docker
 - Requires Google Cloud Project with Secret Manager for hosted OAuth
 - Environment variables: `GOOGLE_CLOUD_PROJECT`, `NODE_ENV`, `PORT`

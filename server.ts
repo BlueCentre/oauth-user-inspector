@@ -146,14 +146,18 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
 
     if (!code || !provider || !redirectUri) {
       reqLogger.warn("OAuth token exchange failed - missing base parameters");
-      return res
-        .status(400)
-        .json({
-          error: "Missing required parameters: code, provider, redirectUri.",
-        });
+      return res.status(400).json({
+        error: "Missing required parameters: code, provider, redirectUri.",
+      });
     }
 
-    if (provider !== "github" && provider !== "google" && provider !== "gitlab" && provider !== "auth0" && provider !== "linkedin") {
+    if (
+      provider !== "github" &&
+      provider !== "google" &&
+      provider !== "gitlab" &&
+      provider !== "auth0" &&
+      provider !== "linkedin"
+    ) {
       reqLogger.warn("OAuth token exchange failed - unsupported provider", {
         provider,
       });
@@ -163,7 +167,9 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
     // Auth0 requires a domain
     if (provider === "auth0" && !auth0Domain && !isHosted) {
       reqLogger.warn("OAuth token exchange failed - missing Auth0 domain");
-      return res.status(400).json({ error: "Auth0 domain is required for non-hosted auth." });
+      return res
+        .status(400)
+        .json({ error: "Auth0 domain is required for non-hosted auth." });
     }
 
     // If hosted, retrieve credentials from secret manager. Otherwise, require them in the body.
@@ -175,12 +181,10 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
       reqLogger.warn(
         "OAuth token exchange failed - missing client credentials for non-hosted flow",
       );
-      return res
-        .status(400)
-        .json({
-          error:
-            "Missing required parameters for non-hosted auth: clientId, clientSecret.",
-        });
+      return res.status(400).json({
+        error:
+          "Missing required parameters for non-hosted auth: clientId, clientSecret.",
+      });
     }
 
     let tokenUrl: string;
@@ -348,23 +352,22 @@ app.post("/api/oauth-hosted/init", async (req: Request, res: Response) => {
           },
         },
       );
-      return res
-        .status(400)
-        .json({
-          error: "Missing required parameters: provider and redirectUri.",
-        });
+      return res.status(400).json({
+        error: "Missing required parameters: provider and redirectUri.",
+      });
     }
 
-    if (provider !== "github" && provider !== "google") {
+    if (
+      !["github", "google", "gitlab", "auth0", "linkedin"].includes(provider)
+    ) {
       reqLogger.warn(
         "Hosted OAuth initialization failed - unsupported provider",
         { provider },
       );
-      return res
-        .status(400)
-        .json({
-          error: "Unsupported provider. Only github and google are supported.",
-        });
+      return res.status(400).json({
+        error:
+          "Unsupported provider. Supported providers are: github, google, gitlab, auth0, linkedin.",
+      });
     }
 
     // Retrieve hosted credentials
@@ -379,6 +382,20 @@ app.post("/api/oauth-hosted/init", async (req: Request, res: Response) => {
       const scope =
         "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google-hosted`;
+    } else if (provider === "gitlab") {
+      const scope = "read_user";
+      authUrl = `https://gitlab.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=gitlab-hosted`;
+    } else if (provider === "auth0") {
+      // For hosted Auth0, we'll need to get the domain from configuration
+      // For now, we'll use a placeholder that should be configured
+      const auth0Domain = await getSecret("AUTH0_DOMAIN").catch(
+        () => "your-tenant.us.auth0.com",
+      );
+      const scope = "openid profile email";
+      authUrl = `https://${auth0Domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=auth0-hosted`;
+    } else if (provider === "linkedin") {
+      const scope = "r_liteprofile r_emailaddress";
+      authUrl = `https://www.linkedin.com/oauth/v2/authorization?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=linkedin-hosted`;
     }
 
     reqLogger.info("Hosted OAuth authorization URL generated", {
@@ -394,12 +411,10 @@ app.post("/api/oauth-hosted/init", async (req: Request, res: Response) => {
       provider: req.body?.provider,
     });
     endTimer();
-    res
-      .status(500)
-      .json({
-        error: "Failed to initialize hosted OAuth.",
-        message: error.message,
-      });
+    res.status(500).json({
+      error: "Failed to initialize hosted OAuth.",
+      message: error.message,
+    });
   }
 });
 
