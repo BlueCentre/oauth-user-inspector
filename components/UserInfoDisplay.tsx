@@ -38,7 +38,6 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
 
   return (
     <div className="mt-8 w-full animate-fade-in">
-      {/* Header section with user info */}
       <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left bg-slate-800/50 p-6 rounded-t-xl border-b border-slate-700">
         <img
           src={user.avatarUrl}
@@ -61,63 +60,30 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
           <p className="mt-2 text-slate-400 max-w-xl">{user.email}</p>
         </div>
       </div>
-
-      {/* Two-column layout: Structured view on left, Raw JSON on right */}
-      <div className="bg-slate-800/50 rounded-b-xl">
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 p-6">
-          
-          {/* Left Column: Structured Data Table */}
-          <div className="order-2 xl:order-1">
-            <h3 className="text-xl font-semibold text-slate-200 mb-4">Provider Data Dump</h3>
-            <div className="max-h-[60vh] overflow-y-auto bg-slate-900/30 p-4 rounded-lg border border-slate-700">
-              <div className="grid grid-cols-1 gap-x-8 gap-y-3 text-sm">
-                {Object.entries(user.rawData).map(([key, value]) => (
-                  <div
-                    key={key}
-                    className="flex justify-between border-b border-slate-700 py-2"
-                  >
-                    <dt className="font-mono text-slate-400 capitalize">{key.replace(/_/g, ' ')}</dt>
-                    <dd className="font-mono text-slate-200 text-right truncate">
-                      {key.endsWith('_url') && typeof value === 'string' && value.startsWith('http') ? (
-                        <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Link</a>
-                      ) : (
-                        <span title={String(value)}>{renderValue(value)}</span>
-                      )}
-                    </dd>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column: Raw JSON */}
-          <div className="order-1 xl:order-2">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold text-slate-200">Raw JSON Data</h3>
-              <button
-                onClick={handleCopy}
-                className="flex items-center px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-md text-sm text-slate-300 hover:bg-slate-700 transition-all"
-              >
-                {isCopied ? (
-                  <>
-                    <ClipboardCheckIcon className="w-4 h-4 mr-2 text-green-400" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <ClipboardIcon className="w-4 h-4 mr-2" />
-                    Copy JSON
-                  </>
-                )}
-              </button>
-            </div>
-            <div className="max-h-[60vh] overflow-y-auto bg-slate-900/70 p-4 rounded-lg border border-slate-700">
-              <pre className="text-xs text-slate-200 whitespace-pre-wrap break-all">
-                {JSON.stringify(user.rawData, null, 2)}
-              </pre>
-            </div>
-          </div>
-
+      <div className="bg-slate-800/50 p-6 rounded-b-xl">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-xl font-semibold text-slate-200">Provider Data Dump</h3>
+          <button
+            onClick={handleCopy}
+            className="flex items-center px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-md text-sm text-slate-300 hover:bg-slate-700 transition-all"
+          >
+            {isCopied ? (
+              <>
+                <ClipboardCheckIcon className="w-4 h-4 mr-2 text-green-400" />
+                Copied!
+              </>
+            ) : (
+              <>
+                <ClipboardIcon className="w-4 h-4 mr-2" />
+                Copy JSON
+              </>
+            )}
+          </button>
+        </div>
+        <div className="max-h-[50vh] overflow-y-auto bg-slate-900/70 p-4 rounded-lg border border-slate-700">
+          <pre className="text-xs text-slate-200 whitespace-pre-wrap break-all">
+            {JSON.stringify(user.rawData, null, 2)}
+          </pre>
         </div>
       </div>
     </div>

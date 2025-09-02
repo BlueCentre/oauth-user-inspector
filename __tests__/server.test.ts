@@ -1,7 +1,9 @@
 import request from 'supertest';
-import express from 'express';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
+
+// Ensure required env vars for hosted credential retrieval
+process.env.GOOGLE_CLOUD_PROJECT = process.env.GOOGLE_CLOUD_PROJECT || 'test-project';
 
 // Mock Google Secret Manager
 jest.mock('@google-cloud/secret-manager', () => ({
@@ -24,6 +26,35 @@ jest.mock('@google-cloud/secret-manager', () => ({
   })),
 }));
 
+// Mock logging-winston to prevent cloud logging attempts in tests
+jest.mock('@google-cloud/logging-winston', () => ({
+  LoggingWinston: jest.fn().mockImplementation(() => ({
+    log: () => {},
+    write: () => {},
+  }))
+}));
+
+// Mock winston to provide a minimal logger implementation
+jest.mock('winston', () => {
+  const fakeLogger = {
+    info: () => {},
+    error: () => {},
+    warn: () => {},
+    child: () => fakeLogger,
+  };
+  return {
+    __esModule: true,
+    default: {
+      createLogger: () => fakeLogger,
+      format: { combine: () => {}, timestamp: () => {}, errors: () => {}, json: () => {}, colorize: () => {}, printf: () => {} },
+      transports: { Console: function () {} }
+    },
+    createLogger: () => fakeLogger,
+    format: { combine: () => {}, timestamp: () => {}, errors: () => {}, json: () => {}, colorize: () => {}, printf: () => {} },
+    transports: { Console: function () {} }
+  };
+});
+
 
 import app from '../server.js';
 
@@ -37,15 +68,12 @@ const mswServer = setupServer(...restHandlers);
 
 beforeAll(async () => {
   const logger = await import('../logger.js');
-  mswServer.listen({ onUnhandledRequest: 'error' });
-  const mockLogger = {
-    info: () => {},
-    error: () => {},
-    warn: () => {},
-  };
-  jest.spyOn(logger.default, 'info').mockImplementation(() => mockLogger as any);
-  jest.spyOn(logger.default, 'error').mockImplementation(() => mockLogger as any);
-  jest.spyOn(logger.default, 'warn').mockImplementation(() => mockLogger as any);
+  // Bypass unhandled requests (e.g., local supertest calls) instead of treating them as errors
+  mswServer.listen({ onUnhandledRequest: 'bypass' });
+  const noop = () => {};
+  jest.spyOn(logger.default, 'info').mockImplementation(noop as any);
+  jest.spyOn(logger.default, 'error').mockImplementation(noop as any);
+  jest.spyOn(logger.default, 'warn').mockImplementation(noop as any);
 });
 afterAll(() => mswServer.close());
 afterEach(() => mswServer.resetHandlers());
