@@ -4,7 +4,7 @@
 
 This is a full-stack web application designed to inspect OAuth user information from providers like GitHub and Google. The application provides a secure backend for handling the OAuth token exchange process.
 
-The frontend is a React application built with Vite and styled with Tailwind CSS. It allows users to authenticate using OAuth or a Personal Access Token (PAT). The backend is an Express server written in TypeScript that handles the server-side part of the OAuth flow.
+The frontend is a React application built with Vite and styled with Tailwind CSS. It allows users to authenticate using OAuth or a Personal Access Token (PAT). The backend is an Express server written in TypeScript that handles the server-side part of the OAuth flow, and now lives entirely under `server/`.
 
 The project is configured for deployment to Google Cloud Run using Docker and Google Cloud Build.
 
@@ -17,25 +17,27 @@ The project is configured for deployment to Google Cloud Run using Docker and Go
 
 ### Development
 
-To run the application in development mode, use the following command:
+To run the application in development mode, use:
 
 ```bash
 npm run dev
 ```
 
-This will start the Vite development server for the frontend and the Express server for the backend (using nodemon for automatic restarts).
+This starts the Vite dev server and a nodemon process that rebuilds `server/` via `tsc -p server/tsconfig.server.json` and runs `dist-server/server.js`.
 
 ### Production
 
-To build the application for production, use the following command:
+Build everything:
 
 ```bash
 npm run build
 ```
 
-This will create a `dist` directory with the optimized frontend assets and a `dist-server` directory with the compiled backend code.
+Artifacts:
+- Frontend: `dist/`
+- Backend: `dist-server/` (compiled from `server/`)
 
-To start the application in production mode, use the following command:
+Start the compiled server:
 
 ```bash
 npm start
@@ -43,13 +45,23 @@ npm start
 
 ### Deployment
 
-The application can be deployed to Google Cloud Run using the provided script:
+Deploy to Cloud Run with:
 
 ```bash
-./deploy.sh
+npm run deploy
 ```
 
-This script uses Google Cloud Build to build the Docker image and deploy it to Cloud Run.
+The `Dockerfile` copies `server/` rather than individual backend files. Cloud Build uses this Dockerfile to build and deploy.
+
+## Notes for Agents/Copilots
+
+- Place all backend code under `server/`. Do not add new backend files at repository root.
+- Update `server/tsconfig.server.json` when adding new server entry points or directories.
+- Tests for the backend should go in `server/__tests__/` and use Jest + ts-jest.
+- Frontend aliases use `@` -> project root; server code should use relative imports within `server/`.
+- Dev script assumptions:
+  - `npm run dev` expects to find `server/server.ts` and `server/logger.ts` for nodemon watch.
+  - Compiled output must be `dist-server/server.js`.
 
 ## Development Conventions
 

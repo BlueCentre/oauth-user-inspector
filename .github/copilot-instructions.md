@@ -53,19 +53,21 @@ The following are outputs from frequently run commands. Reference them instead o
 ```
 .
 ├── README.md                 # Project documentation
-├── package.json             # Node.js dependencies and scripts
-├── App.tsx                  # Main React application component
-├── server.ts                # Express backend server
-├── logger.ts                # Winston logging configuration
-├── components/              # React UI components
-├── __tests__/               # Jest test files
-├── dist/                    # Frontend build output (created by Vite)
-├── dist-server/             # Backend build output (created by TypeScript)
-├── scripts/                 # Development and deployment scripts
-├── types/                   # TypeScript type definitions
-├── Dockerfile               # Container configuration
-├── cloudbuild.yaml          # Google Cloud Build configuration
-└── .github/                 # GitHub configuration (this file)
+├── package.json              # Node.js dependencies and scripts
+├── App.tsx                   # Main React application component
+├── components/               # React UI components
+├── server/                   # All backend (Express) source
+│   ├── server.ts             # Express backend server
+│   ├── logger.ts             # Winston logging configuration
+│   ├── tsconfig.server.json  # Backend TypeScript config
+│   ├── types/express.d.ts    # Express request typings
+│   └── __tests__/            # Jest test files (backend)
+├── dist/                     # Frontend build output (Vite)
+├── dist-server/              # Backend build output (TypeScript)
+├── scripts/                  # Development and deployment scripts
+├── Dockerfile                # Container configuration
+├── cloudbuild.yaml           # Google Cloud Build configuration
+└── .github/                  # GitHub configuration (this file)
 ```
 
 ### Key NPM Scripts
@@ -74,10 +76,10 @@ The following are outputs from frequently run commands. Reference them instead o
 {
   "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:server\"",
   "dev:frontend": "vite",
-  "dev:server": "nodemon --watch server.ts --watch logger.ts --ext ts --exec \"npm run build:server && node dist-server/server.js\"",
+  "dev:server": "nodemon --watch server/server.ts --watch server/logger.ts --ext ts --exec \"npm run build:server && node dist-server/server.js\"",
   "build": "npm run build:frontend && npm run build:server",
   "build:frontend": "vite build",
-  "build:server": "tsc -p tsconfig.server.json",
+  "build:server": "tsc -p server/tsconfig.server.json",
   "start": "GOOGLE_CLOUD_PROJECT=gen-lang-client-0352693779 node dist-server/server.js",
   "test": "jest",
   "setup-dev": "sh scripts/setup-dev.sh",
@@ -107,14 +109,14 @@ The following are outputs from frequently run commands. Reference them instead o
 
 **Backend Files**:
 
-- `server.ts` - Express application with OAuth token exchange endpoints
-- `logger.ts` - Structured logging with Google Cloud integration
-- `__tests__/server.test.ts` - API endpoint tests with MSW mocking
+- `server/server.ts` - Express application with OAuth token exchange endpoints
+- `server/logger.ts` - Structured logging with Google Cloud integration
+- `server/__tests__/server.test.ts` - API endpoint tests with MSW mocking
 
 **Configuration Files**:
 
 - `tsconfig.json` - Frontend TypeScript configuration
-- `tsconfig.server.json` - Backend TypeScript configuration
+- `server/tsconfig.server.json` - Backend TypeScript configuration
 - `vite.config.ts` - Vite bundler configuration with proxy setup
 - `jest.config.cjs` - Jest testing framework configuration
 - `tailwind.config.js` - Tailwind CSS styling configuration
@@ -129,14 +131,14 @@ The following are outputs from frequently run commands. Reference them instead o
 
 **Making Frontend Changes**:
 
-1. Edit files in `/components/`, `App.tsx`, or `/types/`
+1. Edit files in `/components/`, `App.tsx`, or `types.ts`
 2. Vite hot reload automatically updates the browser
 3. Test in browser at http://localhost:5173/
 4. Run `npx prettier --write .` before committing
 
 **Making Backend Changes**:
 
-1. Edit `server.ts`, `logger.ts`, or files in `/types/`
+1. Edit files under `server/` (`server.ts`, `logger.ts`, `server/types/`)
 2. Nodemon automatically rebuilds and restarts the server
 3. Test API endpoints with curl or frontend integration
 4. Run `npm test` to verify tests pass
@@ -144,7 +146,7 @@ The following are outputs from frequently run commands. Reference them instead o
 
 **Adding Tests**:
 
-- Backend tests go in `__tests__/*.test.ts`
+- Backend tests go in `server/__tests__/*.test.ts`
 - Use MSW for mocking external API calls
 - Tests mock Google Cloud services (Secret Manager, Logging)
 - No frontend tests are currently configured

@@ -2,22 +2,18 @@
   "compilerOptions": {
     "target": "es2022",
     "module": "es2022",
-    "outDir": "./dist-server",
+    "outDir": "../dist-server",
     "rootDir": "./",
     "strict": true,
-    "esModuleInterop": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "esModuleInterop": true,
     "moduleResolution": "node"
   },
   "include": [
     "server.ts",
     "logger.ts",
-    "types/**/*",
-    "start.ts",
-    "__tests__/**/*"
+    "types/**/*"
   ]
 }

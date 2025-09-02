@@ -15,11 +15,11 @@ COPY package.json package-lock.json ./
 COPY App.tsx index.tsx index.css index.html ./
 COPY components/ ./components/
 COPY types.ts ./
-COPY types/ ./types/
-COPY server.ts ./
-COPY logger.ts ./
+# Frontend types dir (if any) is optional; server types moved under server/
+# COPY types/ ./types/
+COPY server/ ./server/
 COPY fieldDocs.ts ./
-COPY tsconfig*.json ./
+COPY tsconfig.json ./
 COPY vite.config.ts ./
 COPY postcss.config.js ./
 COPY tailwind.config.js ./

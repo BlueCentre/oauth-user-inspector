@@ -5,10 +5,10 @@
   "description": "OAuth User Inspector with a secure backend for token exchange.",
   "main": "dist-server/server.js",
   "scripts": {
-    "build:server": "tsc -p tsconfig.server.json",
+    "build:server": "tsc -p server/tsconfig.server.json",
     "start": "GOOGLE_CLOUD_PROJECT=gen-lang-client-0352693779 node dist-server/server.js",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:server\"",
-    "dev:server": "nodemon --watch server.ts --watch logger.ts --ext ts --exec \"npm run build:server && node dist-server/server.js\"",
+    "dev:server": "nodemon --watch server/server.ts --watch server/logger.ts --ext ts --exec \"npm run build:server && node dist-server/server.js\"",
     "dev:frontend": "vite",
     "build:frontend": "vite build",
     "build": "npm run build:frontend && npm run build:server",

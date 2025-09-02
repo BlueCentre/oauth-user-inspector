@@ -8,6 +8,25 @@ This is a full-stack web application designed to inspect OAuth user information 
 
 The frontend is a React application built with Vite and styled with Tailwind CSS. It allows users to authenticate using OAuth or a Personal Access Token (PAT). The backend is an Express server written in TypeScript that handles the server-side part of the OAuth flow.
 
+## Repository Structure
+
+```
+.
+├─ App.tsx, index.tsx, index.html, index.css    # Frontend entry and assets
+├─ components/                                   # Frontend components
+├─ server/                                       # All backend (Express) source
+│  ├─ server.ts                                  # Express app
+│  ├─ logger.ts                                  # Logging setup
+│  ├─ tsconfig.server.json                       # Server TypeScript config
+│  ├─ types/express.d.ts                         # Express request typings
+│  └─ __tests__/server.test.ts                   # Server tests (Jest + ts-jest)
+├─ dist/                                         # Built frontend (vite build)
+├─ dist-server/                                  # Compiled backend (tsc)
+├─ Dockerfile                                    # Container build
+├─ scripts/                                      # Helper scripts (deploy, setup)
+└─ vite.config.ts, tsconfig.json                 # Frontend tooling configs
+```
+
 ## Building and Running
 
 ### Prerequisites
@@ -49,7 +68,7 @@ The project uses Jest with ts-jest for backend API tests. To run the test suite:
 npm test
 ```
 
-Tests mock external OAuth provider calls using MSW and stub Google Cloud dependencies (Secret Manager and Cloud Logging). If you add new tests that perform network calls, add corresponding MSW handlers or they will be reported as unhandled.
+Tests live under `server/__tests__`. They mock external OAuth provider calls using MSW and stub Google Cloud dependencies (Secret Manager and Cloud Logging). If you add new tests that perform network calls, add corresponding MSW handlers or they will be reported as unhandled.
 
 If Jest ever appears to hang, you can diagnose open handles with:
 
