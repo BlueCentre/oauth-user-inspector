@@ -85,6 +85,11 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
   // Build a stable ordered list of top-level primitive fields for table view
   const [search, setSearch] = useState('');
   const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const [diffEnabled, setDiffEnabled] = useState<boolean>(() => localStorage.getItem('diff_enabled') === 'true');
+  const snapshotRaw = importedSnapshot?.rawData;
+  type DiffStatus = 'unchanged' | 'added' | 'removed' | 'changed';
+  interface TableEntry { key: string; value: any; previousValue?: any; status: DiffStatus; }
+
   const tableEntries = useMemo(() => {
     const raw: Record<string, any> = user.rawData as any;
     // Only show primitive (string/number/boolean/null) top-level keys; skip objects unless known URL
@@ -101,11 +106,72 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
       if (ai !== -1 && bi !== -1) return ai - bi;
       if (ai !== -1) return -1; if (bi !== -1) return 1; return a.localeCompare(b);
     });
-    const entries = primitiveKeys.map(key => ({ key, value: raw[key] }));
-    if (!search.trim()) return entries;
-    const q = search.toLowerCase();
-    return entries.filter(e => (e.key.toLowerCase().includes(q) || String(e.value).toLowerCase().includes(q)));
-  }, [user.rawData, search]);
+    const entries: TableEntry[] = primitiveKeys.map(key => ({ key, value: raw[key], status: 'unchanged' as DiffStatus }));
+
+    if (diffEnabled && snapshotRaw && typeof snapshotRaw === 'object') {
+      const prev: Record<string, any> = snapshotRaw as any;
+      const prevPrimitiveKeys = Object.keys(prev).filter(k => {
+        const v = prev[k];
+        return v === null || ['string','number','boolean'].includes(typeof v);
+      });
+      const currentSet = new Set(primitiveKeys);
+      const prevSet = new Set(prevPrimitiveKeys);
+      // Mark added / changed
+      for (const e of entries) {
+        if (!prevSet.has(e.key)) {
+          e.status = 'added';
+        } else {
+          const prevVal = prev[e.key];
+            if (prevVal !== e.value) {
+              e.status = 'changed';
+              e.previousValue = prevVal;
+            }
+        }
+      }
+      // Collect removed
+      for (const k of prevPrimitiveKeys) {
+        if (!currentSet.has(k)) {
+          entries.push({ key: k, value: undefined, previousValue: prev[k], status: 'removed' });
+        }
+      }
+    }
+
+    let filtered = entries;
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      filtered = entries.filter(e => (
+        e.key.toLowerCase().includes(q) ||
+        (e.value !== undefined && String(e.value).toLowerCase().includes(q)) ||
+        (e.previousValue !== undefined && String(e.previousValue).toLowerCase().includes(q))
+      ));
+    }
+    // For deterministic ordering when diff, ensure removed keys appear after normal ordering
+    filtered.sort((a,b) => {
+      const ai = preferredOrder.indexOf(a.key); const bi = preferredOrder.indexOf(b.key);
+      if (ai !== -1 && bi !== -1) return ai - bi;
+      if (ai !== -1) return -1; if (bi !== -1) return 1; return a.key.localeCompare(b.key);
+    });
+    // Ensure removed at bottom
+    filtered.sort((a,b) => {
+      const order = (s: DiffStatus) => s === 'removed' ? 1 : 0;
+      return order(a.status) - order(b.status);
+    });
+    return filtered;
+  }, [user.rawData, search, diffEnabled, snapshotRaw]);
+
+  const diffSummary = useMemo(() => {
+    if (!diffEnabled) return null;
+    let added=0, removed=0, changed=0;
+    for (const e of tableEntries) {
+      if (e.status === 'added') added++; else if (e.status === 'removed') removed++; else if (e.status === 'changed') changed++;
+    }
+    if (!added && !removed && !changed) return null;
+    return { added, removed, changed };
+  }, [diffEnabled, tableEntries]);
+
+  const toggleDiff = () => {
+    const next = !diffEnabled; setDiffEnabled(next); localStorage.setItem('diff_enabled', String(next));
+  };
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -201,6 +267,13 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
               {m === 'both' ? 'Both' : m === 'table' ? 'Table' : 'JSON'}
             </button>
           ))}
+          {importedSnapshot && (
+            <button
+              onClick={toggleDiff}
+              className={`text-xs px-3 py-1 rounded border transition-colors ${diffEnabled ? 'bg-amber-600/70 border-amber-500 text-white' : 'bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700'}`}
+              title={diffEnabled ? 'Disable diff highlighting' : 'Enable visual diff vs imported snapshot'}
+            >Diff {diffEnabled ? 'On' : 'Off'}</button>
+          )}
           <button
             onClick={exportSnapshot}
             className="ml-auto text-xs px-3 py-1 rounded border bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors"
@@ -226,6 +299,13 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
                 className="w-full sm:w-64 text-sm px-3 py-1.5 bg-slate-900/70 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-slate-200 placeholder-slate-500"
               />
             </div>
+            {diffSummary && (
+              <div className="flex flex-wrap gap-3 mb-3 text-[11px] font-mono">
+                <span className="px-2 py-0.5 rounded bg-emerald-900/40 border border-emerald-600 text-emerald-300">added: {diffSummary.added}</span>
+                <span className="px-2 py-0.5 rounded bg-amber-900/40 border border-amber-600 text-amber-300">changed: {diffSummary.changed}</span>
+                <span className="px-2 py-0.5 rounded bg-rose-900/40 border border-rose-600 text-rose-300">removed: {diffSummary.removed}</span>
+              </div>
+            )}
             <table className="w-full text-left text-sm border-collapse">
               <thead>
                 <tr className="text-slate-400 text-xs uppercase tracking-wide">
@@ -234,16 +314,26 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
                 </tr>
               </thead>
               <tbody>
-                {tableEntries.map(({ key, value }) => {
+                {tableEntries.map(({ key, value, previousValue, status }) => {
                   const display = renderPrimitive(value);
                   const isLink = typeof value === 'string' && isUrl(value);
-                  const plainValue = typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value);
+                  const plainValue = value === undefined ? (previousValue === undefined ? '' : String(previousValue)) : (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' ? String(value) : JSON.stringify(value));
                   const doc = getFieldDoc(user.provider, key);
+                  const statusClasses = diffEnabled ? (
+                    status === 'added' ? 'bg-emerald-900/20 border-l-2 border-emerald-500' :
+                    status === 'changed' ? 'bg-amber-900/20 border-l-2 border-amber-500' :
+                    status === 'removed' ? 'bg-rose-900/20 border-l-2 border-rose-500 opacity-80' : ''
+                  ) : '';
                   return (
-                    <tr key={key} className="border-t border-slate-700/60 hover:bg-slate-700/30">
+                    <tr key={key} className={`border-t border-slate-700/60 hover:bg-slate-700/30 ${statusClasses}`}> 
                       <td className="py-2 pr-3 align-top text-slate-300 font-mono text-[11px] sm:text-xs break-all">
                         <div className="flex items-start gap-1 group">
                           <span>{key}</span>
+                          {diffEnabled && status !== 'unchanged' && (
+                            <span className="text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-slate-600/60 text-slate-200">
+                              {status}
+                            </span>
+                          )}
                           {doc && (
                             <span
                               className="relative inline-block"
@@ -260,14 +350,19 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
                       <td className="py-2 align-top text-slate-100 text-[11px] sm:text-xs break-all">
                         <div className="flex items-start gap-2">
                           <div className="flex-1 min-w-0">
-                            {isLink ? (
-                              <a href={value} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">Link</a>
+                            {status === 'removed' ? (
+                              <span className="line-through text-slate-500" title="Removed in current data">{renderPrimitive(previousValue)}</span>
+                            ) : isLink ? (
+                              <a href={value as string} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300">Link</a>
                             ) : display || <span className="text-slate-500">(object)</span>}
+                            {status === 'changed' && (
+                              <div className="mt-1 text-[10px] text-amber-300/80">prev: {renderPrimitive(previousValue)}</div>
+                            )}
                           </div>
                           <button
                             onClick={() => navigator.clipboard.writeText(plainValue)}
                             className="shrink-0 p-1 rounded bg-slate-700/50 hover:bg-slate-600 text-slate-300 border border-slate-600"
-                            title="Copy value"
+                            title={status==='removed' ? 'Copy previous value' : 'Copy value'}
                           >
                             <ClipboardIcon className="w-3 h-3" />
                           </button>
