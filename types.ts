@@ -48,17 +48,17 @@ export interface ProviderGitHubUser {
 
 // This is the raw user object returned by the Google API
 export interface ProviderGoogleUser {
-    id: string;
-    email: string;
-    verified_email: boolean;
-    name: string;
-    given_name: string;
-    family_name: string;
-    picture: string;
-    locale: string;
+  id: string;
+  email: string;
+  verified_email: boolean;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  locale: string;
 }
 
-export type AuthProvider = 'github' | 'google';
+export type AuthProvider = "github" | "google";
 
 // This is the unified user object used throughout the application
 export interface AppUser {
