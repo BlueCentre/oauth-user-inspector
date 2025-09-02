@@ -34,6 +34,28 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
     const stored = localStorage.getItem('view_mode');
     return stored === 'table' || stored === 'json' || stored === 'both' ? stored : 'both';
   });
+  const exportSnapshot = () => {
+    try {
+      const snapshot = {
+        capturedAt: new Date().toISOString(),
+        provider: user.provider,
+        username: user.username,
+        viewMode,
+        rawData: user.rawData,
+        // Intentionally exclude accessToken by default for safety; include masked
+        accessTokenMasked: user.accessToken ? user.accessToken.replace(/.(?=.{4})/g,'•') : undefined
+      };
+      const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `oauth-user-snapshot-${user.provider}-${user.username}-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error('Failed to export snapshot', e);
+    }
+  };
   const updateViewMode = (mode: 'both' | 'table' | 'json') => {
     setViewMode(mode);
     localStorage.setItem('view_mode', mode);
@@ -144,6 +166,12 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
               {m === 'both' ? 'Both' : m === 'table' ? 'Table' : 'JSON'}
             </button>
           ))}
+          <button
+            onClick={exportSnapshot}
+            className="ml-auto text-xs px-3 py-1 rounded border bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors"
+          >
+            Export Snapshot
+          </button>
         </div>
         <div className={viewMode==='both' ? 'grid md:grid-cols-2 gap-0' : ''}>
           {/* Structured Table */}
