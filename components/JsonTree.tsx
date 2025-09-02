@@ -1,0 +1,64 @@
+import React, { useState } from 'react';
+
+interface JsonTreeProps {
+  data: any;
+  level?: number;
+  path?: string;
+}
+
+const INDENT = '  ';
+
+const isObject = (v: any) => v && typeof v === 'object' && !Array.isArray(v);
+
+const JsonNode: React.FC<JsonTreeProps> = ({ data, level = 0, path = '' }) => {
+  const [open, setOpen] = useState(level < 2); // auto-expand top 2 levels
+
+  if (!isObject(data) && !Array.isArray(data)) {
+    return <span className="text-amber-200">{JSON.stringify(data)}</span>;
+  }
+
+  const entries = Array.isArray(data) ? data.map((v, i) => [i, v]) : Object.entries(data);
+  const isEmpty = entries.length === 0;
+
+  return (
+    <div className="font-mono text-[11px] leading-relaxed">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="mr-1 text-xs text-blue-300 hover:text-blue-200"
+        title={open ? 'Collapse' : 'Expand'}
+      >{open ? '−' : '+'}</button>
+      <span className="text-slate-400">{Array.isArray(data) ? 'Array' : 'Object'}</span>
+      <span className="text-slate-500 ml-1">[{entries.length}]</span>
+      {open && !isEmpty && (
+        <div className="ml-4 border-l border-slate-700 pl-3 mt-1 space-y-0.5">
+          {entries.map(([k, v]: any) => {
+            const childPath = path ? `${path}.${k}` : String(k);
+            return (
+              <div key={k} className="group">
+                <span className="text-slate-500 select-none">{k}:</span>{' '}
+                {isObject(v) || Array.isArray(v) ? (
+                  <JsonNode data={v} level={level + 1} path={childPath} />
+                ) : (
+                  <span className="text-emerald-200">{JSON.stringify(v)}</span>
+                )}
+                <button
+                  onClick={() => navigator.clipboard.writeText(String(isObject(v) ? JSON.stringify(v) : v))}
+                  className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 text-[10px] px-1 py-0.5 rounded bg-slate-700/60 text-slate-300 border border-slate-600 hover:bg-slate-600"
+                  title="Copy value"
+                >copy</button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {open && isEmpty && <span className="text-slate-500 ml-2">(empty)</span>}
+    </div>
+  );
+};
+
+const JsonTree: React.FC<{ data: any }> = ({ data }) => {
+  return <JsonNode data={data} />;
+};
+
+export default JsonTree;

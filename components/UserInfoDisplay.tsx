@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { AppUser } from '../types';
 import { GithubIcon, GoogleIcon, ClipboardIcon, ClipboardCheckIcon } from './icons';
+import JsonTree from './JsonTree';
 
 interface UserInfoDisplayProps {
   user: AppUser;
@@ -272,32 +273,77 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user, safeMode = fals
           <div className="p-6">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-xl font-semibold text-slate-200">Raw JSON Data</h3>
-              <button
-                onClick={handleCopy}
-                className="flex items-center px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-md text-xs text-slate-300 hover:bg-slate-700 transition-all"
-              >
-                {isCopied ? (
-                  <>
-                    <ClipboardCheckIcon className="w-4 h-4 mr-1.5 text-green-400" />
-                    Copied!
-                  </>
-                ) : (
-                  <>
-                    <ClipboardIcon className="w-4 h-4 mr-1.5" />
-                    Copy JSON
-                  </>
-                )}
-              </button>
+              <div className="flex gap-2">
+                <JsonViewToggle copyHandler={handleCopy} isCopied={isCopied} />
+              </div>
             </div>
-            <div className="max-h-[50vh] overflow-y-auto bg-slate-900/70 p-4 rounded-lg border border-slate-700">
-              <pre className="text-xs text-slate-200 whitespace-pre-wrap break-all">
-                {JSON.stringify(user.rawData, null, 2)}
-              </pre>
-            </div>
+            <JsonViewContainer data={user.rawData} />
           </div>
           )}
         </div>
       </div>
+    </div>
+  );
+};
+
+// Local component state for JSON view mode (tree/raw) persisted via localStorage
+const JsonViewToggle: React.FC<{ copyHandler: () => void; isCopied: boolean }> = ({ copyHandler, isCopied }) => {
+  const [mode, setMode] = useState<'tree' | 'raw'>(() => {
+    const stored = localStorage.getItem('json_view_mode');
+    return stored === 'raw' ? 'raw' : 'tree';
+  });
+  useEffect(() => {
+    localStorage.setItem('json_view_mode', mode);
+  }, [mode]);
+  return (
+    <>
+      <div className="flex items-center bg-slate-700/40 border border-slate-600 rounded-md overflow-hidden text-[11px]">
+        {(['tree','raw'] as const).map(m => (
+          <button
+            key={m}
+            onClick={() => setMode(m)}
+            className={`px-2 py-1 ${mode===m ? 'bg-slate-600 text-white' : 'text-slate-300 hover:bg-slate-600/40'}`}
+            title={m==='tree' ? 'Tree view' : 'Raw JSON view'}
+          >{m}</button>
+        ))}
+      </div>
+      <button
+        onClick={copyHandler}
+        className="flex items-center px-3 py-1.5 bg-slate-700/50 border border-slate-600 rounded-md text-xs text-slate-300 hover:bg-slate-700 transition-all"
+      >
+        {isCopied ? (
+          <>
+            <ClipboardCheckIcon className="w-4 h-4 mr-1.5 text-green-400" />
+            Copied!
+          </>
+        ) : (
+          <>
+            <ClipboardIcon className="w-4 h-4 mr-1.5" />
+            Copy JSON
+          </>
+        )}
+      </button>
+    </>
+  );
+};
+
+const JsonViewContainer: React.FC<{ data: any }> = ({ data }) => {
+  const [mode, setMode] = useState<'tree' | 'raw'>(() => {
+    const stored = localStorage.getItem('json_view_mode');
+    return stored === 'raw' ? 'raw' : 'tree';
+  });
+  useEffect(() => {
+    const handler = () => setMode(localStorage.getItem('json_view_mode') === 'raw' ? 'raw' : 'tree');
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+  return (
+    <div className="max-h-[50vh] overflow-y-auto bg-slate-900/70 p-4 rounded-lg border border-slate-700 font-mono">
+      {mode === 'tree' ? (
+        <JsonTree data={data} />
+      ) : (
+        <pre className="text-xs text-slate-200 whitespace-pre-wrap break-all">{JSON.stringify(data, null, 2)}</pre>
+      )}
     </div>
   );
 };
