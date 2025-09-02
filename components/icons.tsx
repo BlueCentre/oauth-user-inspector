@@ -116,3 +116,80 @@ export const LogoutIcon: React.FC<{ className?: string }> = ({ className }) => (
     <path strokeLinecap="round" strokeLinejoin="round" d="M15 7l5 5-5 5M19 12H9m4 7a2 2 0 01-2 2H6a2 2 0 01-2-2V5a2 2 0 012-2h5a2 2 0 012 2"/>
   </svg>
 );
+
+export const GitLabIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    aria-label="GitLab Icon"
+  >
+    <path
+      d="M12.001 22.0001L15.992 11.3334H8.01003L12.001 22.0001Z"
+      fill="#E24329"
+    />
+    <path
+      d="M12.001 22.0001L8.01003 11.3334H1.98503L12.001 22.0001Z"
+      fill="#FC6D26"
+    />
+    <path
+      d="M1.98503 11.3334L0.615027 15.3984C0.469027 15.8344 0.648027 16.3174 1.03403 16.5724L12.001 22.0001L1.98503 11.3334Z"
+      fill="#FCA326"
+    />
+    <path
+      d="M1.98503 11.3334H8.01003L5.32603 2.85936C5.15203 2.33436 4.38603 2.33436 4.21203 2.85936L1.98503 11.3334Z"
+      fill="#E24329"
+    />
+    <path
+      d="M12.001 22.0001L15.992 11.3334H22.017L12.001 22.0001Z"
+      fill="#FC6D26"
+    />
+    <path
+      d="M22.017 11.3334L23.387 15.3984C23.533 15.8344 23.354 16.3174 22.968 16.5724L12.001 22.0001L22.017 11.3334Z"
+      fill="#FCA326"
+    />
+    <path
+      d="M22.017 11.3334H15.992L18.676 2.85936C18.85 2.33436 19.616 2.33436 19.79 2.85936L22.017 11.3334Z"
+      fill="#E24329"
+    />
+  </svg>
+);
+
+export const Auth0Icon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    aria-label="Auth0 Icon"
+  >
+    <path
+      d="M21.98 7.448L19.62 0H4.347L2.02 7.448c-1.352 4.312.03 9.206 3.815 12.015L12.007 24l6.157-4.537c3.785-2.809 5.167-7.703 3.815-12.015z"
+      fill="#EB5424"
+    />
+    <path
+      d="M12.007 24l6.157-4.537c3.785-2.809 5.167-7.703 3.815-12.015L19.62 0h-7.613V24z"
+      fill="#F67C01"
+    />
+    <path
+      d="M12.007 0v24l-6.172-4.537C2.05 16.654.668 11.76 2.02 7.448L4.347 0h7.66z"
+      fill="#EB5424"
+    />
+  </svg>
+);
+
+export const LinkedInIcon: React.FC<{ className?: string }> = ({ className }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    viewBox="0 0 24 24"
+    fill="currentColor"
+    className={className}
+    aria-label="LinkedIn Icon"
+  >
+    <path
+      d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"
+      fill="#0077B5"
+    />
+  </svg>
+);

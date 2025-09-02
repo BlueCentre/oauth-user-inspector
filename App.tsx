@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import type { AppUser, AuthProvider, ProviderGitHubUser, ProviderGoogleUser } from './types';
+import type { AppUser, AuthProvider, ProviderGitHubUser, ProviderGoogleUser, ProviderGitLabUser, ProviderAuth0User, ProviderLinkedInUser } from './types';
 import { Spinner } from './components/icons';
 import TopMenu from './components/TopMenu';
 import UserInfoDisplay from './components/UserInfoDisplay';
@@ -101,6 +101,22 @@ const App: React.FC = () => {
             Authorization: `Bearer ${token}`,
           },
         });
+      } else if (provider === 'gitlab') {
+        response = await fetch('https://gitlab.com/api/v4/user', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else if (provider === 'auth0') {
+        // For Auth0, we need to get the domain from somewhere
+        // This is a limitation - we'll need the domain info
+        throw new Error('Auth0 userinfo endpoint requires domain configuration');
+      } else if (provider === 'linkedin') {
+        response = await fetch('https://api.linkedin.com/v2/people/~', {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
       } else {
         throw new Error('Unsupported provider');
       }
@@ -170,6 +186,56 @@ const App: React.FC = () => {
           tokenExpiresAt,
           jwtPayload,
         };
+      } else if (provider === 'gitlab') {
+        const gitlabUser = rawData as ProviderGitLabUser;
+        appUser = {
+          provider: 'gitlab',
+          avatarUrl: gitlabUser.avatar_url,
+          name: gitlabUser.name,
+          email: gitlabUser.email,
+          profileUrl: gitlabUser.web_url,
+          username: gitlabUser.username,
+          rawData: gitlabUser,
+          accessToken: token,
+          scopes,
+          tokenType,
+          tokenExpiresAt,
+          jwtPayload,
+        };
+      } else if (provider === 'auth0') {
+        const auth0User = rawData as ProviderAuth0User;
+        appUser = {
+          provider: 'auth0',
+          avatarUrl: auth0User.picture || '',
+          name: auth0User.name,
+          email: auth0User.email,
+          profileUrl: auth0User.profile || '',
+          username: auth0User.preferred_username || auth0User.nickname || auth0User.email || auth0User.sub,
+          rawData: auth0User,
+          accessToken: token,
+          scopes,
+          tokenType,
+          tokenExpiresAt,
+          jwtPayload,
+        };
+      } else if (provider === 'linkedin') {
+        const linkedinUser = rawData as ProviderLinkedInUser;
+        const firstName = Object.values(linkedinUser.firstName.localized)[0] || '';
+        const lastName = Object.values(linkedinUser.lastName.localized)[0] || '';
+        appUser = {
+          provider: 'linkedin',
+          avatarUrl: linkedinUser.profilePicture?.displayImage || '',
+          name: `${firstName} ${lastName}`.trim(),
+          email: linkedinUser.emailAddress || null,
+          profileUrl: `https://www.linkedin.com/in/profile-${linkedinUser.id}`,
+          username: linkedinUser.id,
+          rawData: linkedinUser,
+          accessToken: token,
+          scopes,
+          tokenType,
+          tokenExpiresAt,
+          jwtPayload,
+        };
       } else {
         throw new Error('Provider mapping failed.');
       }
@@ -199,9 +265,12 @@ const App: React.FC = () => {
         if (!credsString) {
           throw new Error("Could not find OAuth credentials. Please try logging in again.");
         }
-        const { clientId, clientSecret } = JSON.parse(credsString);
-        requestBody.clientId = clientId;
-        requestBody.clientSecret = clientSecret;
+        const creds = JSON.parse(credsString);
+        requestBody.clientId = creds.clientId;
+        requestBody.clientSecret = creds.clientSecret;
+        if (creds.auth0Domain) {
+          requestBody.auth0Domain = creds.auth0Domain;
+        }
       }
 
       const response = await fetch('/api/oauth/token', {
@@ -275,15 +344,21 @@ const App: React.FC = () => {
     }
   }, [handleAuthCallback, fetchUser]);
   
-  const handleOAuthLogin = (provider: AuthProvider, clientId: string, clientSecret: string) => {
+  const handleOAuthLogin = (provider: AuthProvider, clientId: string, clientSecret: string, auth0Domain?: string) => {
     if (!clientId || !clientSecret) {
       setError(`Please provide a Client ID and Client Secret for ${provider}.`);
+      return;
+    }
+    if (provider === 'auth0' && !auth0Domain) {
+      setError('Please provide an Auth0 domain.');
       return;
     }
     setError(null);
     
     // Store credentials in sessionStorage to retrieve after redirect
-    sessionStorage.setItem('oauth_credentials', JSON.stringify({ clientId, clientSecret }));
+    const credentials: any = { clientId, clientSecret };
+    if (auth0Domain) credentials.auth0Domain = auth0Domain;
+    sessionStorage.setItem('oauth_credentials', JSON.stringify(credentials));
     
     let authUrl = '';
     const redirectUri = getRedirectUri();
@@ -294,6 +369,15 @@ const App: React.FC = () => {
     } else if (provider === 'google') {
       const scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google`;
+    } else if (provider === 'gitlab') {
+      const scope = 'read_user';
+      authUrl = `https://gitlab.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=gitlab`;
+    } else if (provider === 'auth0') {
+      const scope = 'openid profile email';
+      authUrl = `https://${auth0Domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=auth0`;
+    } else if (provider === 'linkedin') {
+      const scope = 'r_liteprofile r_emailaddress';
+      authUrl = `https://www.linkedin.com/oauth/v2/authorization?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=linkedin`;
     }
     window.location.href = authUrl;
   };

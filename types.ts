@@ -58,7 +58,75 @@ export interface ProviderGoogleUser {
     locale: string;
 }
 
-export type AuthProvider = 'github' | 'google';
+// This is the raw user object returned by the GitLab API
+export interface ProviderGitLabUser {
+    id: number;
+    username: string;
+    name: string;
+    email: string;
+    avatar_url: string;
+    web_url: string;
+    state: string;
+    bio: string | null;
+    location: string | null;
+    public_email: string | null;
+    skype: string | null;
+    linkedin: string | null;
+    twitter: string | null;
+    website_url: string | null;
+    organization: string | null;
+    created_at: string;
+    last_sign_in_at: string | null;
+    confirmed_at: string | null;
+    last_activity_on: string | null;
+    two_factor_enabled: boolean;
+    external: boolean;
+    private_profile: boolean;
+}
+
+// This is the raw user object returned by the Auth0 API
+export interface ProviderAuth0User {
+    sub: string;
+    name: string;
+    given_name?: string;
+    family_name?: string;
+    middle_name?: string;
+    nickname?: string;
+    preferred_username?: string;
+    profile?: string;
+    picture?: string;
+    website?: string;
+    email?: string;
+    email_verified?: boolean;
+    gender?: string;
+    birthdate?: string;
+    zoneinfo?: string;
+    locale?: string;
+    phone_number?: string;
+    phone_number_verified?: boolean;
+    address?: object;
+    updated_at?: string;
+    [key: string]: any; // Auth0 can have custom claims
+}
+
+// This is the raw user object returned by the LinkedIn API
+export interface ProviderLinkedInUser {
+    id: string;
+    firstName: {
+        localized: { [key: string]: string };
+        preferredLocale: { country: string; language: string };
+    };
+    lastName: {
+        localized: { [key: string]: string };
+        preferredLocale: { country: string; language: string };
+    };
+    profilePicture?: {
+        displayImage: string;
+    };
+    emailAddress?: string; // This comes from a separate API call
+}
+
+export type AuthProvider = 'github' | 'google' | 'gitlab' | 'auth0' | 'linkedin';
 
 // This is the unified user object used throughout the application
 export interface AppUser {

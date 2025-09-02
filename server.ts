@@ -44,7 +44,7 @@ async function getSecret(secretName: string): Promise<string> {
 }
 
 // Helper function to get hosted OAuth credentials
-async function getHostedCredentials(provider: 'github' | 'google'): Promise<{ clientId: string; clientSecret: string }> {
+async function getHostedCredentials(provider: 'github' | 'google' | 'gitlab' | 'auth0' | 'linkedin'): Promise<{ clientId: string; clientSecret: string }> {
   if (provider === 'github') {
     const [clientId, clientSecret] = await Promise.all([
       getSecret('GITHUB_APP_OAUTH_CLIENT_ID'),
@@ -55,6 +55,24 @@ async function getHostedCredentials(provider: 'github' | 'google'): Promise<{ cl
     const [clientId, clientSecret] = await Promise.all([
       getSecret('GOOGLE_APP_OAUTH_CLIENT_ID'),
       getSecret('GOOGLE_APP_OAUTH_CLIENT_SECRET')
+    ]);
+    return { clientId, clientSecret };
+  } else if (provider === 'gitlab') {
+    const [clientId, clientSecret] = await Promise.all([
+      getSecret('GITLAB_APP_OAUTH_CLIENT_ID'),
+      getSecret('GITLAB_APP_OAUTH_CLIENT_SECRET')
+    ]);
+    return { clientId, clientSecret };
+  } else if (provider === 'auth0') {
+    const [clientId, clientSecret] = await Promise.all([
+      getSecret('AUTH0_APP_OAUTH_CLIENT_ID'),
+      getSecret('AUTH0_APP_OAUTH_CLIENT_SECRET')
+    ]);
+    return { clientId, clientSecret };
+  } else if (provider === 'linkedin') {
+    const [clientId, clientSecret] = await Promise.all([
+      getSecret('LINKEDIN_APP_OAUTH_CLIENT_ID'),
+      getSecret('LINKEDIN_APP_OAUTH_CLIENT_SECRET')
     ]);
     return { clientId, clientSecret };
   } else {
@@ -106,7 +124,7 @@ app.post('/api/oauth/token', async (req: Request, res: Response) => {
 
       try {
         const { code, provider, redirectUri, isHosted } = req.body;
-        let { clientId, clientSecret } = req.body;
+        let { clientId, clientSecret, auth0Domain } = req.body;
 
         reqLogger.info('OAuth token exchange initiated', {
           provider,
@@ -120,9 +138,15 @@ app.post('/api/oauth/token', async (req: Request, res: Response) => {
           return res.status(400).json({ error: 'Missing required parameters: code, provider, redirectUri.' });
         }
         
-        if (provider !== 'github' && provider !== 'google') {
+        if (provider !== 'github' && provider !== 'google' && provider !== 'gitlab' && provider !== 'auth0' && provider !== 'linkedin') {
           reqLogger.warn('OAuth token exchange failed - unsupported provider', { provider });
           return res.status(400).json({ error: 'Unsupported provider.' });
+        }
+
+        // Auth0 requires a domain
+        if (provider === 'auth0' && !auth0Domain && !isHosted) {
+          reqLogger.warn('OAuth token exchange failed - missing Auth0 domain');
+          return res.status(400).json({ error: 'Auth0 domain is required for non-hosted auth.' });
         }
 
         // If hosted, retrieve credentials from secret manager. Otherwise, require them in the body.
@@ -167,6 +191,56 @@ app.post('/api/oauth/token', async (req: Request, res: Response) => {
             grant_type: 'authorization_code',
             redirect_uri: redirectUri,
           });
+
+        } else if (provider === 'gitlab') {
+          tokenUrl = 'https://gitlab.com/oauth/token';
+          fetchOptions.method = 'POST';
+          fetchOptions.headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          };
+          fetchOptions.body = JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri,
+          });
+
+        } else if (provider === 'auth0') {
+          // For hosted Auth0, we'd need to store the domain in secrets
+          // For non-hosted, use the provided domain
+          const domain = isHosted ? 'oauth-user-inspector.us.auth0.com' : auth0Domain;
+          tokenUrl = `https://${domain}/oauth/token`;
+          fetchOptions.method = 'POST';
+          fetchOptions.headers = {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          };
+          fetchOptions.body = JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code,
+            grant_type: 'authorization_code',
+            redirect_uri: redirectUri,
+          });
+
+        } else if (provider === 'linkedin') {
+          tokenUrl = 'https://www.linkedin.com/oauth/v2/accessToken';
+          const params = new URLSearchParams();
+          params.append('grant_type', 'authorization_code');
+          params.append('code', code);
+          params.append('redirect_uri', redirectUri);
+          params.append('client_id', clientId);
+          params.append('client_secret', clientSecret);
+
+          fetchOptions.method = 'POST';
+          fetchOptions.headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+          };
+          fetchOptions.body = params;
+
         } else {
           // This case is already handled above, but kept for safety.
           return res.status(400).json({ error: 'Unsupported provider.' });
@@ -248,9 +322,9 @@ app.post('/api/oauth-hosted/init', async (req: Request, res: Response) => {
           return res.status(400).json({ error: 'Missing required parameters: provider and redirectUri.' });
         }
 
-        if (provider !== 'github' && provider !== 'google') {
+        if (provider !== 'github' && provider !== 'google' && provider !== 'gitlab' && provider !== 'auth0' && provider !== 'linkedin') {
           reqLogger.warn('Hosted OAuth initialization failed - unsupported provider', { provider });
-          return res.status(400).json({ error: 'Unsupported provider. Only github and google are supported.' });
+          return res.status(400).json({ error: 'Unsupported provider. Only github, google, gitlab, auth0, and linkedin are supported.' });
         }
 
         // Retrieve hosted credentials
@@ -264,6 +338,16 @@ app.post('/api/oauth-hosted/init', async (req: Request, res: Response) => {
         } else if (provider === 'google') {
           const scope = 'https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email';
           authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google-hosted`;
+        } else if (provider === 'gitlab') {
+          const scope = 'read_user';
+          authUrl = `https://gitlab.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=gitlab-hosted`;
+        } else if (provider === 'auth0') {
+          const scope = 'openid profile email';
+          const domain = 'oauth-user-inspector.us.auth0.com'; // Use hosted Auth0 domain
+          authUrl = `https://${domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=auth0-hosted`;
+        } else if (provider === 'linkedin') {
+          const scope = 'r_liteprofile r_emailaddress';
+          authUrl = `https://www.linkedin.com/oauth/v2/authorization?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=linkedin-hosted`;
         }
         
         reqLogger.info('Hosted OAuth authorization URL generated', {
