@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MenuIcon } from './icons';
+import { MenuIcon, HelpIcon, UploadIcon, LogoutIcon } from './icons';
 
 interface TopMenuProps {
   userLoggedIn: boolean;
@@ -127,8 +127,8 @@ const TopMenu: React.FC<TopMenuProps> = ({
               ref={firstFocusable}
               data-focusable="true"
               onClick={triggerFileDialog}
-              className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-            >Import Snapshot</button>
+              className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            ><UploadIcon className="w-4 h-4"/> Import Snapshot</button>
             <input
               ref={fileInputRef}
               type="file"
@@ -140,8 +140,8 @@ const TopMenu: React.FC<TopMenuProps> = ({
               <button
                 data-focusable="true"
                 onClick={onClearSnapshot}
-                className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-              >Clear Snapshot</button>
+                className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+              ><UploadIcon className="w-4 h-4 rotate-180"/> Clear Snapshot</button>
             )}
           </div>
           {userLoggedIn && (
@@ -154,16 +154,16 @@ const TopMenu: React.FC<TopMenuProps> = ({
               <button
                 data-focusable="true"
                 onClick={onLogout}
-                className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-              >Logout</button>
+                className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+              ><LogoutIcon className="w-4 h-4"/> Logout</button>
             </div>
           )}
           <div className="flex flex-col gap-2" role="group" aria-label="Help & diagnostics">
             <button
               data-focusable="true"
               onClick={onShowHelp}
-              className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
-            >Help & Shortcuts</button>
+              className="w-full px-3 py-1.5 text-xs rounded-md border border-slate-600 text-slate-300 bg-slate-900/20 hover:bg-slate-800/40 text-center inline-flex items-center justify-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-500"
+            ><HelpIcon className="w-4 h-4"/> Help & Shortcuts</button>
             {hasError && (
               <button
                 data-focusable="true"
