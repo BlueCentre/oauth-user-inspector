@@ -30,6 +30,14 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
   const [tokenCopied, setTokenCopied] = useState(false);
+  const [viewMode, setViewMode] = useState<'both' | 'table' | 'json'>(() => {
+    const stored = localStorage.getItem('view_mode');
+    return stored === 'table' || stored === 'json' || stored === 'both' ? stored : 'both';
+  });
+  const updateViewMode = (mode: 'both' | 'table' | 'json') => {
+    setViewMode(mode);
+    localStorage.setItem('view_mode', mode);
+  };
 
   const handleCopy = () => {
     navigator.clipboard.writeText(JSON.stringify(user.rawData, null, 2)).then(() => {
@@ -125,9 +133,22 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
       </div>
       {/* Body: table + JSON */}
       <div className="bg-slate-800/50 p-0 rounded-b-xl overflow-hidden">
-        <div className="grid md:grid-cols-2 gap-0">
+        <div className="flex flex-wrap gap-2 p-4 border-b border-slate-700 bg-slate-900/40">
+          <span className="text-xs uppercase tracking-wide text-slate-400 self-center">View Mode:</span>
+          {(['both','table','json'] as const).map(m => (
+            <button
+              key={m}
+              onClick={() => updateViewMode(m)}
+              className={`text-xs px-3 py-1 rounded border transition-colors ${viewMode===m ? 'bg-slate-600 border-slate-500 text-white' : 'bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700'}`}
+            >
+              {m === 'both' ? 'Both' : m === 'table' ? 'Table' : 'JSON'}
+            </button>
+          ))}
+        </div>
+        <div className={viewMode==='both' ? 'grid md:grid-cols-2 gap-0' : ''}>
           {/* Structured Table */}
-          <div className="p-6 border-b md:border-b-0 md:border-r border-slate-700 overflow-x-auto">
+          {viewMode !== 'json' && (
+          <div className={`p-6 ${viewMode==='both' ? 'border-b md:border-b-0 md:border-r' : ''} border-slate-700 overflow-x-auto`}>            
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <h3 className="text-xl font-semibold text-slate-200">Provider Data Dump</h3>
               <input
@@ -168,7 +189,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
               </tbody>
             </table>
           </div>
+          )}
           {/* Raw JSON */}
+          {viewMode !== 'table' && (
           <div className="p-6">
             <div className="flex justify-between items-center mb-3">
               <h3 className="text-xl font-semibold text-slate-200">Raw JSON Data</h3>
@@ -195,6 +218,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({ user }) => {
               </pre>
             </div>
           </div>
+          )}
         </div>
       </div>
     </div>
