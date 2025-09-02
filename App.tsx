@@ -61,7 +61,8 @@ const App: React.FC = () => {
               email: githubUser.email,
               profileUrl: githubUser.html_url,
               username: githubUser.login,
-              rawData: githubUser,
+        rawData: githubUser,
+        accessToken: token,
           };
       } else if (provider === 'google') {
           const googleUser = rawData as ProviderGoogleUser;
@@ -72,7 +73,8 @@ const App: React.FC = () => {
               email: googleUser.email,
               profileUrl: `https://myaccount.google.com/u/0/?authuser=${googleUser.email}`,
               username: googleUser.email,
-              rawData: googleUser,
+        rawData: googleUser,
+        accessToken: token,
           };
       } else {
           // Should not happen
