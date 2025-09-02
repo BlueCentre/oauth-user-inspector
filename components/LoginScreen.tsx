@@ -21,6 +21,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
   const [pat, setPat] = useState('');
   const [gcloudToken, setGcloudToken] = useState('');
   const [copiedProvider, setCopiedProvider] = useState<AuthProvider | null>(null);
+  const [showGithubSecret, setShowGithubSecret] = useState(false);
+  const [showGoogleSecret, setShowGoogleSecret] = useState(false);
+  const [showPat, setShowPat] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const handleCopy = (provider: AuthProvider) => {
     navigator.clipboard.writeText(getRedirectUri()).then(() => {
@@ -31,8 +35,36 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
     });
   };
 
+  const handleCardPaste: React.ClipboardEventHandler<HTMLDivElement> = (e) => {
+    try {
+      const text = e.clipboardData.getData('text');
+      if (!text) return;
+      // Try JSON with client_id/client_secret
+      if (text.trim().startsWith('{')) {
+        const obj = JSON.parse(text);
+        if (obj.client_id || obj.clientId) {
+          setGithubClientId(obj.client_id || obj.clientId);
+        }
+        if (obj.client_secret || obj.clientSecret) {
+          setGithubClientSecret(obj.client_secret || obj.clientSecret);
+        }
+        if (obj.google_client_id) setGoogleClientId(obj.google_client_id);
+        if (obj.google_client_secret) setGoogleClientSecret(obj.google_client_secret);
+        if (obj.pat) setPat(obj.pat);
+        if (obj.gcloud_token) setGcloudToken(obj.gcloud_token);
+        setToast('Pasted credentials parsed into fields');
+        setTimeout(() => setToast(null), 2000);
+      }
+    } catch {}
+  };
+
   return (
-    <div className="bg-slate-800 p-8 rounded-xl shadow-2xl ring-1 ring-white/10 w-full max-w-2xl mx-auto transition-all duration-300">
+    <div className="bg-slate-800 p-8 rounded-xl shadow-2xl ring-1 ring-white/10 w-full max-w-2xl mx-auto transition-all duration-300" onPaste={handleCardPaste}>
+      {toast && (
+        <div className="mb-3 text-xs px-3 py-2 rounded-md border border-emerald-600 text-emerald-300 bg-emerald-900/20">
+          {toast}
+        </div>
+      )}
       <div className="text-center mb-8">
         <h1 className="text-3xl font-bold text-white tracking-tight">
           OAuth User Inspector
@@ -86,14 +118,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                   <label htmlFor="github-client-secret" className="block text-sm font-medium text-slate-300">
                     GitHub OAuth App Client Secret
                   </label>
-                  <input
+                  <div className="relative">
+                    <input
                     id="github-client-secret"
-                    type="password"
+                    type={showGithubSecret ? 'text' : 'password'}
                     value={githubClientSecret}
                     onChange={(e) => setGithubClientSecret(e.target.value)}
                     placeholder="Enter your GitHub Client Secret"
-                    className="w-full mt-1 px-4 py-2 bg-slate-900 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full mt-1 pr-12 px-4 py-2 bg-slate-900 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                   />
+                    <button
+                      type="button"
+                      onClick={() => setShowGithubSecret(v => !v)}
+                      className="absolute right-2 top-1.5 text-xs px-2 py-0.5 rounded border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                    >{showGithubSecret ? 'Hide' : 'Show'}</button>
+                  </div>
                 </div>
               </div>
               <div className="mt-6">
@@ -121,14 +160,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                   <label htmlFor="pat-input" className="block text-sm font-medium text-slate-300">
                     Personal Access Token (PAT)
                   </label>
-                  <input
+                  <div className="relative">
+                    <input
                     id="pat-input"
-                    type="password"
+                    type={showPat ? 'text' : 'password'}
                     value={pat}
                     onChange={(e) => setPat(e.target.value)}
                     placeholder="ghp_..."
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
+                    className="w-full pr-12 px-4 py-2 bg-slate-900 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-green-500 transition-colors"
                   />
+                    <button
+                      type="button"
+                      onClick={() => setShowPat(v => !v)}
+                      className="absolute right-2 top-1.5 text-xs px-2 py-0.5 rounded border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                    >{showPat ? 'Hide' : 'Show'}</button>
+                  </div>
                 </div>
                 <div className="mt-6">
                   <button
@@ -206,14 +252,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onOAuthLogin, onPatLogin, onG
                   <label htmlFor="google-client-secret" className="block text-sm font-medium text-slate-300">
                     Google OAuth App Client Secret
                   </label>
-                  <input
+                  <div className="relative">
+                    <input
                     id="google-client-secret"
-                    type="password"
+                    type={showGoogleSecret ? 'text' : 'password'}
                     value={googleClientSecret}
                     onChange={(e) => setGoogleClientSecret(e.target.value)}
                     placeholder="Enter your Google Client Secret"
-                    className="w-full mt-1 px-4 py-2 bg-slate-900 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
+                    className="w-full mt-1 pr-12 px-4 py-2 bg-slate-900 border border-slate-700 rounded-md text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-colors"
                   />
+                    <button
+                      type="button"
+                      onClick={() => setShowGoogleSecret(v => !v)}
+                      className="absolute right-2 top-1.5 text-xs px-2 py-0.5 rounded border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+                    >{showGoogleSecret ? 'Hide' : 'Show'}</button>
+                  </div>
                 </div>
               </div>
               <div className="mt-6">
