@@ -69,4 +69,7 @@ export interface AppUser {
   profileUrl: string;
   username: string;
   rawData: object;
+  accessToken?: string; // Add access token
+  idToken?: string; // Add ID token
+  refreshToken?: string; // Add refresh token
 }
