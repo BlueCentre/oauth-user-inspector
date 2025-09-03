@@ -154,13 +154,13 @@ const App: React.FC = () => {
             },
           });
         } else if (provider === "auth0") {
-          // For Auth0, we need to get the domain from stored credentials
-          const credentialsRaw = sessionStorage.getItem("oauth_credentials");
+          // For Auth0, get the domain from previously stored auth_meta
+          const metaRaw = localStorage.getItem("auth_meta");
           let auth0Domain = "";
-          if (credentialsRaw) {
+          if (metaRaw) {
             try {
-              const credentials = JSON.parse(credentialsRaw);
-              auth0Domain = credentials.auth0Domain;
+              const meta = JSON.parse(metaRaw);
+              auth0Domain = meta.auth0_domain || meta.auth0Domain || "";
             } catch {}
           }
           if (!auth0Domain) {
@@ -423,6 +423,7 @@ const App: React.FC = () => {
           token_type,
           id_token,
           refresh_token,
+          auth0_domain,
         } = data;
         if (!access_token) {
           throw new Error("Access token not found in server response.");
@@ -441,6 +442,7 @@ const App: React.FC = () => {
             id_token,
             refresh_token,
             fetched_at: Date.now(),
+            auth0_domain,
           }),
         );
         await fetchUser(access_token, provider);

@@ -297,6 +297,13 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
         responseText: responseText.substring(0, 500),
       });
 
+      if (provider === "auth0" && !auth0Domain) {
+        reqLogger.warn("Auth0 token exchange failed due to missing domain", {
+          hint:
+            "Ensure AUTH0_APP_OAUTH_DOMAIN secret exists or pass auth0Domain from client.",
+        });
+      }
+
       try {
         const errorData = JSON.parse(responseText);
         return res.status(tokenResponse.status).json({
@@ -316,6 +323,11 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
     }
 
     const tokenData = JSON.parse(responseText);
+
+    // Attach provider-specific metadata helpful to the client
+    if (provider === "auth0" && auth0Domain) {
+      (tokenData as any).auth0_domain = auth0Domain;
+    }
 
     reqLogger.info("OAuth token exchange successful", {
       provider,
@@ -457,9 +469,9 @@ app.get(
             secretExists("GITLAB_APP_OAUTH_CLIENT_ID"),
             secretExists("GITLAB_APP_OAUTH_CLIENT_SECRET"),
           ]).then(([id, secret]) => id && secret),
-          secretExists("AUTH0_APP_OAUTH_CLIENT_ID"),
-          secretExists("AUTH0_APP_OAUTH_CLIENT_SECRET"),
-          secretExists("AUTH0_APP_OAUTH_DOMAIN"),
+            secretExists("AUTH0_APP_OAUTH_CLIENT_ID"),
+            secretExists("AUTH0_APP_OAUTH_CLIENT_SECRET"),
+            secretExists("AUTH0_APP_OAUTH_DOMAIN"),
           Promise.all([
             secretExists("LINKEDIN_APP_OAUTH_CLIENT_ID"),
             secretExists("LINKEDIN_APP_OAUTH_CLIENT_SECRET"),
