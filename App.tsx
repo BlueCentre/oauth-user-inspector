@@ -22,6 +22,9 @@ const App: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [diagnostics, setDiagnostics] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
+  const [hostedAvailability, setHostedAvailability] = useState<
+    Partial<Record<AuthProvider, boolean>>
+  >({});
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -59,6 +62,21 @@ const App: React.FC = () => {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
+  }, []);
+
+  // Fetch hosted OAuth availability (secrets existence)
+  useEffect(() => {
+    const loadAvailability = async () => {
+      try {
+        const resp = await fetch("/api/oauth-hosted/availability");
+        if (!resp.ok) return; // don't block UI if this fails
+        const data = await resp.json();
+        if (data && data.availability) {
+          setHostedAvailability(data.availability);
+        }
+      } catch {}
+    };
+    loadAvailability();
   }, []);
   const runDiagnostics = async () => {
     try {
@@ -612,6 +630,7 @@ const App: React.FC = () => {
           onGcloudTokenLogin={handleGcloudTokenSubmit}
           onHostedOAuthLogin={handleHostedOAuthLogin}
           isLoading={isLoading}
+          hostedAvailability={hostedAvailability}
         />
       </div>
     );

@@ -22,6 +22,7 @@ interface LoginScreenProps {
   onGcloudTokenLogin: (token: string) => void;
   onHostedOAuthLogin: (provider: AuthProvider) => void;
   isLoading: boolean;
+  hostedAvailability?: Partial<Record<AuthProvider, boolean>>;
 }
 
 const getRedirectUri = () => window.location.origin + window.location.pathname;
@@ -32,6 +33,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   onGcloudTokenLogin,
   onHostedOAuthLogin,
   isLoading,
+  hostedAvailability,
 }) => {
   const [githubClientId, setGithubClientId] = useState("");
   const [githubClientSecret, setGithubClientSecret] = useState("");
@@ -67,6 +69,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         console.error("Could not copy text: ", err);
       },
     );
+  };
+
+  const isHostedAvailable = (provider: AuthProvider): boolean => {
+    if (!hostedAvailability) return true; // default to enabled until known
+    const v = hostedAvailability[provider];
+    return v === undefined ? true : Boolean(v);
   };
 
   const handleCardPaste: React.ClipboardEventHandler<HTMLDivElement> = (e) => {
@@ -343,12 +351,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               <div className="mt-6">
                 <button
                   onClick={() => onHostedOAuthLogin("github")}
-                  disabled={isLoading}
+                  disabled={isLoading || !isHostedAvailable("github")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
                   <GithubIcon className="h-5 w-5 mr-2" />
                   Sign in with Hosted GitHub App
                 </button>
+                {!isHostedAvailable("github") && (
+                  <p className="mt-2 text-xs text-slate-400 text-center">
+                    Hosted app coming later.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -533,12 +546,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               <div className="mt-6">
                 <button
                   onClick={() => onHostedOAuthLogin("google")}
-                  disabled={isLoading}
+                  disabled={isLoading || !isHostedAvailable("google")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
                   <GoogleIcon className="h-5 w-5 mr-2" />
                   Sign in with Hosted Google App
                 </button>
+                {!isHostedAvailable("google") && (
+                  <p className="mt-2 text-xs text-slate-400 text-center">
+                    Hosted app coming later.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -667,12 +685,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               <div className="mt-6">
                 <button
                   onClick={() => onHostedOAuthLogin("gitlab")}
-                  disabled={isLoading}
+                  disabled={isLoading || !isHostedAvailable("gitlab")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
                   <GitLabIcon className="h-5 w-5 mr-2" />
                   Sign in with Hosted GitLab App
                 </button>
+                {!isHostedAvailable("gitlab") && (
+                  <p className="mt-2 text-xs text-slate-400 text-center">
+                    Hosted app coming later.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -827,12 +850,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               <div className="mt-6">
                 <button
                   onClick={() => onHostedOAuthLogin("auth0")}
-                  disabled={isLoading}
+                  disabled={isLoading || !isHostedAvailable("auth0")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
                   <Auth0Icon className="h-5 w-5 mr-2" />
                   Sign in with Hosted Auth0 App
                 </button>
+                {!isHostedAvailable("auth0") && (
+                  <p className="mt-2 text-xs text-slate-400 text-center">
+                    Hosted app coming later.
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -967,12 +995,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               <div className="mt-6">
                 <button
                   onClick={() => onHostedOAuthLogin("linkedin")}
-                  disabled={isLoading}
+                  disabled={isLoading || !isHostedAvailable("linkedin")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
                   <LinkedInIcon className="h-5 w-5 mr-2" />
                   Sign in with Hosted LinkedIn App
                 </button>
+                {!isHostedAvailable("linkedin") && (
+                  <p className="mt-2 text-xs text-slate-400 text-center">
+                    Hosted app coming later.
+                  </p>
+                )}
               </div>
             </div>
           </div>

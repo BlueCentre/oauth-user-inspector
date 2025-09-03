@@ -418,6 +418,64 @@ app.post("/api/oauth-hosted/init", async (req: Request, res: Response) => {
   }
 });
 
+// Hosted OAuth - Report availability based on presence of Secret Manager keys
+app.get(
+  "/api/oauth-hosted/availability",
+  async (req: Request, res: Response) => {
+    const reqLogger = req.logger || logger;
+    const endTimer = logTiming(reqLogger, "oauth-hosted-availability");
+
+    const secretExists = async (name: string): Promise<boolean> => {
+      try {
+        await getSecret(name);
+        return true;
+      } catch {
+        return false;
+      }
+    };
+
+    try {
+      const [github, google, gitlab, auth0Id, auth0Secret, linkedin] =
+        await Promise.all([
+          Promise.all([
+            secretExists("GITHUB_APP_OAUTH_CLIENT_ID"),
+            secretExists("GITHUB_APP_OAUTH_CLIENT_SECRET"),
+          ]).then(([id, secret]) => id && secret),
+          Promise.all([
+            secretExists("GOOGLE_APP_OAUTH_CLIENT_ID"),
+            secretExists("GOOGLE_APP_OAUTH_CLIENT_SECRET"),
+          ]).then(([id, secret]) => id && secret),
+          Promise.all([
+            secretExists("GITLAB_APP_OAUTH_CLIENT_ID"),
+            secretExists("GITLAB_APP_OAUTH_CLIENT_SECRET"),
+          ]).then(([id, secret]) => id && secret),
+          secretExists("AUTH0_APP_OAUTH_CLIENT_ID"),
+          secretExists("AUTH0_APP_OAUTH_CLIENT_SECRET"),
+          Promise.all([
+            secretExists("LINKEDIN_APP_OAUTH_CLIENT_ID"),
+            secretExists("LINKEDIN_APP_OAUTH_CLIENT_SECRET"),
+          ]).then(([id, secret]) => id && secret),
+        ]);
+
+      const availability = {
+        github,
+        google,
+        gitlab,
+        auth0: auth0Id && auth0Secret,
+        linkedin,
+      };
+
+      reqLogger.info("Hosted availability computed", { availability });
+      endTimer();
+      res.json({ availability });
+    } catch (error: any) {
+      logError(reqLogger, error, { endpoint: "/api/oauth-hosted/availability" });
+      endTimer();
+      res.status(500).json({ error: "Failed to check availability." });
+    }
+  },
+);
+
 // This endpoint is now consolidated into /api/oauth/token
 // app.post('/api/oauth-hosted/token', ...);
 
