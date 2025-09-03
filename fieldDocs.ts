@@ -74,3 +74,12 @@ export function getFieldDoc(
   const p = providerDocs[provider] || {};
   return p[field] || generic[field];
 }
+
+/**
+ * Get all available field documentation for a provider.
+ * Combines generic fields with provider-specific fields.
+ */
+export function getAllFieldDocs(provider: string): Record<string, FieldDoc> {
+  const providerSpecific = providerDocs[provider] || {};
+  return { ...generic, ...providerSpecific };
+}

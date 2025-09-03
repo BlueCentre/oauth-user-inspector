@@ -653,18 +653,26 @@ describe("/api/explore", () => {
     const response = await request(app).post("/api/explore").send({});
 
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("error", "Missing required fields: provider, accessToken, endpoint");
+    expect(response.body).toHaveProperty(
+      "error",
+      "Missing required fields: provider, accessToken, endpoint",
+    );
   });
 
   it("should return 400 for invalid endpoint", async () => {
-    const response = await request(app).post("/api/explore").send({
-      provider: "github",
-      accessToken: "test_token",
-      endpoint: { id: "test" }, // missing url and method
-    });
+    const response = await request(app)
+      .post("/api/explore")
+      .send({
+        provider: "github",
+        accessToken: "test_token",
+        endpoint: { id: "test" }, // missing url and method
+      });
 
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("error", "Invalid endpoint: missing url or method");
+    expect(response.body).toHaveProperty(
+      "error",
+      "Invalid endpoint: missing url or method",
+    );
   });
 
   it("should handle API calls for GitHub endpoints", async () => {
@@ -673,19 +681,21 @@ describe("/api/explore", () => {
     mswServer.use(
       http.get("https://api.github.com/user", () => {
         return HttpResponse.json(mockResponse);
-      })
+      }),
     );
 
-    const response = await request(app).post("/api/explore").send({
-      provider: "github",
-      accessToken: "test_access_token",
-      endpoint: {
-        id: "user",
-        name: "Current User",
-        url: "https://api.github.com/user",
-        method: "GET",
-      },
-    });
+    const response = await request(app)
+      .post("/api/explore")
+      .send({
+        provider: "github",
+        accessToken: "test_access_token",
+        endpoint: {
+          id: "user",
+          name: "Current User",
+          url: "https://api.github.com/user",
+          method: "GET",
+        },
+      });
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("success", true);

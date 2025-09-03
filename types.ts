@@ -192,7 +192,7 @@ export interface ApiEndpoint {
   name: string;
   description: string;
   url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   requiredScopes?: string[];
 }
 
