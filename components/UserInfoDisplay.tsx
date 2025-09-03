@@ -348,27 +348,53 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
               
               {/* Token Management Actions */}
               <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-600">
-                {user.refreshToken && onTokenRefresh && (
-                  <button
-                    onClick={onTokenRefresh}
-                    className="text-[10px] px-3 py-1.5 rounded bg-blue-700/60 border border-blue-600 text-blue-200 hover:bg-blue-700 transition-colors"
-                    title="Use refresh token to get a new access token"
-                  >
-                    🔄 Refresh Token
-                  </button>
+                <div className="w-full mb-2">
+                  <h5 className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">
+                    Token Lifecycle Management
+                  </h5>
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Demonstrates OAuth token refresh and revocation best practices for secure application development.
+                  </p>
+                </div>
+                
+                {user.refreshToken && onTokenRefresh ? (
+                  <div className="flex flex-col">
+                    <button
+                      onClick={onTokenRefresh}
+                      className="text-[10px] px-3 py-1.5 rounded bg-blue-700/60 border border-blue-600 text-blue-200 hover:bg-blue-700 transition-colors"
+                      title="Use refresh token to get a new access token without re-authentication"
+                    >
+                      🔄 Refresh Token
+                    </button>
+                    <div className="text-[9px] text-slate-500 mt-1 max-w-48">
+                      Refresh tokens allow getting new access tokens without re-authentication
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex flex-col">
+                    <div className="text-[10px] px-3 py-1.5 rounded bg-slate-700/40 border border-slate-600 text-slate-400">
+                      🔄 No Refresh Token
+                    </div>
+                    <div className="text-[9px] text-slate-500 mt-1 max-w-48">
+                      {user.provider === 'github' 
+                        ? 'GitHub OAuth Apps don\'t support refresh tokens (only GitHub Apps do)'
+                        : 'This session doesn\'t have a refresh token available'}
+                    </div>
+                  </div>
                 )}
+                
                 {onTokenRevocation && (
-                  <button
-                    onClick={onTokenRevocation}
-                    className="text-[10px] px-3 py-1.5 rounded bg-red-700/60 border border-red-600 text-red-200 hover:bg-red-700 transition-colors"
-                    title="Revoke the access token (will log you out)"
-                  >
-                    🚫 Revoke Token
-                  </button>
-                )}
-                {!user.refreshToken && (
-                  <div className="text-[10px] text-slate-500 py-1.5">
-                    No refresh token available for this provider/session
+                  <div className="flex flex-col">
+                    <button
+                      onClick={onTokenRevocation}
+                      className="text-[10px] px-3 py-1.5 rounded bg-red-700/60 border border-red-600 text-red-200 hover:bg-red-700 transition-colors"
+                      title="Revoke the access token immediately for security (will log you out)"
+                    >
+                      🚫 Revoke Token
+                    </button>
+                    <div className="text-[9px] text-slate-500 mt-1 max-w-48">
+                      Immediately invalidates the token - important for security when compromised
+                    </div>
                   </div>
                 )}
               </div>
