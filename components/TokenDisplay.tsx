@@ -68,12 +68,12 @@ const TokenItem: React.FC<{
   const jwtDetails = isJWT(token) ? decodeJWT(token) : null;
 
   return (
-    <div className="space-y-2 w-full">
+    <div className="space-y-2 w-full overflow-hidden">
       <div className="flex items-center justify-between">
         <h5 className="text-xs uppercase tracking-wide text-slate-400">
           {title}
         </h5>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           {jwtDetails && (
             <button
               onClick={() => setDecodedVisible(!decodedVisible)}
@@ -109,7 +109,7 @@ const TokenItem: React.FC<{
       </div>
 
       {/* Raw Token Display */}
-      <code className="block text-[10px] sm:text-xs break-all text-slate-300 select-all bg-slate-800 p-2 rounded border border-slate-700">
+      <code className="block text-[10px] sm:text-xs break-all text-slate-300 select-all bg-slate-800 p-2 rounded border border-slate-700 w-full overflow-hidden">
         {visible
           ? token
           : safeMode
@@ -120,54 +120,62 @@ const TokenItem: React.FC<{
       {/* JWT Decoded Display */}
       {jwtDetails && decodedVisible && (
         <div className="space-y-3 bg-slate-900/70 p-3 rounded border border-slate-600 w-full overflow-hidden">
-          <div>
+          <div className="w-full overflow-hidden">
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Header
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-w-full">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-all word-break-break-all max-w-0 min-w-0">
               {JSON.stringify(jwtDetails.header, null, 2)}
             </pre>
           </div>
 
-          <div>
+          <div className="w-full overflow-hidden">
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Payload
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-w-full">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-all word-break-break-all max-w-0 min-w-0">
               {JSON.stringify(jwtDetails.payload, null, 2)}
             </pre>
           </div>
 
           {/* Key JWT Claims Summary */}
-          <div>
+          <div className="w-full overflow-hidden">
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               Key Claims
             </h6>
-            <div className="text-[10px] space-y-1 text-slate-300">
+            <div className="text-[10px] space-y-1 text-slate-300 w-full overflow-hidden">
               {jwtDetails.payload.iss && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Issuer:</span>{" "}
-                  {jwtDetails.payload.iss}
+                  <span className="break-all word-break-break-all">
+                    {jwtDetails.payload.iss}
+                  </span>
                 </div>
               )}
               {jwtDetails.payload.aud && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Audience:</span>{" "}
-                  {Array.isArray(jwtDetails.payload.aud)
-                    ? jwtDetails.payload.aud.join(", ")
-                    : jwtDetails.payload.aud}
+                  <span className="break-all word-break-break-all">
+                    {Array.isArray(jwtDetails.payload.aud)
+                      ? jwtDetails.payload.aud.join(", ")
+                      : jwtDetails.payload.aud}
+                  </span>
                 </div>
               )}
               {jwtDetails.payload.sub && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Subject:</span>{" "}
-                  {jwtDetails.payload.sub}
+                  <span className="break-all word-break-break-all">
+                    {jwtDetails.payload.sub}
+                  </span>
                 </div>
               )}
               {jwtDetails.payload.exp && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Expires:</span>{" "}
-                  {new Date(jwtDetails.payload.exp * 1000).toLocaleString()}
+                  <span className="break-all word-break-break-all">
+                    {new Date(jwtDetails.payload.exp * 1000).toLocaleString()}
+                  </span>
                   <span className="text-slate-400 ml-1">
                     (
                     {Math.max(
@@ -181,33 +189,43 @@ const TokenItem: React.FC<{
                 </div>
               )}
               {jwtDetails.payload.iat && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Issued At:</span>{" "}
-                  {new Date(jwtDetails.payload.iat * 1000).toLocaleString()}
+                  <span className="break-all word-break-break-all">
+                    {new Date(jwtDetails.payload.iat * 1000).toLocaleString()}
+                  </span>
                 </div>
               )}
               {jwtDetails.payload.nbf && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Not Before:</span>{" "}
-                  {new Date(jwtDetails.payload.nbf * 1000).toLocaleString()}
+                  <span className="break-all word-break-break-all">
+                    {new Date(jwtDetails.payload.nbf * 1000).toLocaleString()}
+                  </span>
                 </div>
               )}
               {jwtDetails.payload.scope && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Scope:</span>{" "}
-                  {jwtDetails.payload.scope}
+                  <span className="break-all word-break-break-all">
+                    {jwtDetails.payload.scope}
+                  </span>
                 </div>
               )}
               {jwtDetails.payload.email && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Email:</span>{" "}
-                  {jwtDetails.payload.email}
+                  <span className="break-all word-break-break-all">
+                    {jwtDetails.payload.email}
+                  </span>
                 </div>
               )}
               {jwtDetails.payload.name && (
-                <div>
+                <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Name:</span>{" "}
-                  {jwtDetails.payload.name}
+                  <span className="break-all word-break-break-all">
+                    {jwtDetails.payload.name}
+                  </span>
                 </div>
               )}
             </div>

@@ -814,13 +814,51 @@ const App: React.FC = () => {
   const createSampleTokenDemo = () => {
     // Sample JWT tokens for demonstration (these are NOT real tokens)
     const sampleAccessToken = "ghp_1234567890abcdefghijklmnopqrstuvwxyz12"; // GitHub PAT format
-    const sampleIdToken =
-      "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEyMyJ9.eyJpc3MiOiJodHRwczovL2V4YW1wbGUuY29tIiwiYXVkIjoiZXhhbXBsZS1jbGllbnQtaWQiLCJzdWIiOiJ1c2VyMTIzIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiSm9obiBEb2UiLCJwaWN0dXJlIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9hdmF0YXIuanBnIiwiaWF0IjoxNzI1MzkwNDAwLCJleHAiOjE3MjUzOTQwMDAsIm5iZiI6MTcyNTM5MDQwMCwic2NvcGUiOiJvcGVuaWQgZW1haWwgcHJvZmlsZSJ9.example-signature-not-real";
-    const sampleRefreshToken = "refresh_1234567890abcdefghijklmnopqrstuvwxyz";
+    // Create a JWT with very long URLs and values to test layout breaking
+    const longPictureUrl =
+      "https://images.very-long-domain-name-for-testing-layout-breaking-scenarios.com/user-profile-pictures/high-resolution-avatars/subfolder/another-subfolder/yet-another-very-long-folder-name/final-destination-folder-with-extremely-long-name/user-avatar-image-with-very-long-filename-that-should-break-layout-if-not-properly-handled.jpg?version=2024&size=large&quality=high&cache-buster=1234567890abcdefghijklmnopqrstuvwxyz&extra-param=another-very-long-parameter-value-to-make-this-url-even-longer";
+    const longProfileUrl =
+      "https://social-media-platform-with-extremely-long-domain-name-for-testing.com/profiles/users/detailed-view/with-many-query-parameters/user-profile-page?user_id=1234567890&display_mode=full&include_details=true&show_activity=true&theme=dark&language=en-US&timezone=America/New_York&format=json&api_version=v2.1&include_permissions=true&show_preferences=true&extra_data=true&debug_mode=false&cache_control=no-cache";
+
+    const longJwtPayload = {
+      iss: "https://very-long-issuer-domain-name-for-testing-jwt-layout-breaking.com",
+      aud: "extremely-long-audience-client-id-that-should-cause-layout-issues-if-not-properly-handled-with-css-constraints",
+      sub: "user123",
+      email:
+        "john.doe.with.very.long.email.address@extremely-long-domain-name-for-testing-layout-scenarios.com",
+      email_verified: true,
+      name: "John Doe with Very Long Name That Should Test Text Wrapping",
+      picture: longPictureUrl,
+      profile: longProfileUrl,
+      iat: 1725390400,
+      exp: 1725394000,
+      nbf: 1725390400,
+      scope:
+        "openid email profile read:user read:repositories write:repositories admin:org admin:public_key admin:repo_hook admin:org_hook gist notifications user:email user:follow delete_repo write:discussion read:discussion",
+      custom_claim_with_long_name:
+        "this-is-a-very-long-custom-claim-value-that-contains-no-spaces-and-should-test-word-breaking-behavior-in-the-jwt-display-component",
+      another_long_url:
+        "https://api.service-with-very-long-name.com/v1/endpoints/with/many/path/segments/that/go/on/and/on/user/profile/data/extended/information/detailed/view?access_token=very_long_access_token_value_1234567890abcdefghijklmnopqrstuvwxyz&refresh_token=another_long_token_value&scope=full_access&client_id=long_client_identifier&redirect_uri=https://callback.url.with.long.domain.name.com/oauth/callback",
+    };
+
+    // Create a JWT token with the long payload
+    const header = { alg: "RS256", typ: "JWT", kid: "123" };
+    const encodedHeader = btoa(JSON.stringify(header))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+    const encodedPayload = btoa(JSON.stringify(longJwtPayload))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+    const sampleIdToken = `${encodedHeader}.${encodedPayload}.example-signature-not-real-but-very-long-to-test-layout-breaking-scenarios`;
+
+    const sampleRefreshToken =
+      "refresh_token_with_very_long_value_1234567890abcdefghijklmnopqrstuvwxyz_additional_suffix_to_make_it_longer";
 
     const sampleUser: AppUser = {
       provider: "google",
-      avatarUrl: "https://lh3.googleusercontent.com/a/default-user",
+      avatarUrl: longPictureUrl,
       name: "Demo User",
       email: "demo@example.com",
       profileUrl: "https://example.com/profile/demo",
@@ -832,7 +870,7 @@ const App: React.FC = () => {
         name: "Demo User",
         given_name: "Demo",
         family_name: "User",
-        picture: "https://lh3.googleusercontent.com/a/default-user",
+        picture: longPictureUrl,
         locale: "en",
       },
       accessToken: sampleAccessToken,
@@ -841,19 +879,7 @@ const App: React.FC = () => {
       scopes: ["openid", "email", "profile"],
       tokenType: "Bearer",
       tokenExpiresAt: Date.now() + 3600000, // 1 hour from now
-      jwtPayload: {
-        iss: "https://example.com",
-        aud: "example-client-id",
-        sub: "user123",
-        email: "john.doe@example.com",
-        email_verified: true,
-        name: "John Doe",
-        picture: "https://example.com/avatar.jpg",
-        iat: 1725390400,
-        exp: 1725394000,
-        nbf: 1725390400,
-        scope: "openid email profile",
-      },
+      jwtPayload: longJwtPayload,
     };
 
     setUser(sampleUser);
