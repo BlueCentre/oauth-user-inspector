@@ -675,7 +675,9 @@ const App: React.FC = () => {
         const tokenData = await response.json();
         await handleRefreshSuccess(tokenData);
       } else {
-        throw new Error("No OAuth credentials available for token refresh. This session may have been started with hosted OAuth.");
+        throw new Error(
+          "No OAuth credentials available for token refresh. This session may have been started with hosted OAuth.",
+        );
       }
     } catch (err: any) {
       setError(`Token refresh failed: ${err.message}`);
@@ -728,7 +730,11 @@ const App: React.FC = () => {
       return;
     }
 
-    if (!confirm("Are you sure you want to revoke your access token? This will log you out.")) {
+    if (
+      !confirm(
+        "Are you sure you want to revoke your access token? This will log you out.",
+      )
+    ) {
       return;
     }
 
@@ -781,7 +787,7 @@ const App: React.FC = () => {
         });
 
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
           handleLogout();
           setError(null);
@@ -793,13 +799,92 @@ const App: React.FC = () => {
         // For providers like LinkedIn that don't support revocation, just log out locally
         handleLogout();
         setError(null);
-        alert("Session ended locally. Some providers don't support token revocation.");
+        alert(
+          "Session ended locally. Some providers don't support token revocation.",
+        );
       }
     } catch (err: any) {
       setError(`Token revocation failed: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Development-only function to create a sample user with JWT tokens for testing
+  const createSampleTokenDemo = () => {
+    // Sample JWT tokens for demonstration (these are NOT real tokens)
+    const sampleAccessToken = "ghp_1234567890abcdefghijklmnopqrstuvwxyz12"; // GitHub PAT format
+    // Create a JWT with very long URLs and values to test layout breaking
+    const longPictureUrl =
+      "https://images.very-long-domain-name-for-testing-layout-breaking-scenarios.com/user-profile-pictures/high-resolution-avatars/subfolder/another-subfolder/yet-another-very-long-folder-name/final-destination-folder-with-extremely-long-name/user-avatar-image-with-very-long-filename-that-should-break-layout-if-not-properly-handled.jpg?version=2024&size=large&quality=high&cache-buster=1234567890abcdefghijklmnopqrstuvwxyz&extra-param=another-very-long-parameter-value-to-make-this-url-even-longer";
+    const longProfileUrl =
+      "https://social-media-platform-with-extremely-long-domain-name-for-testing.com/profiles/users/detailed-view/with-many-query-parameters/user-profile-page?user_id=1234567890&display_mode=full&include_details=true&show_activity=true&theme=dark&language=en-US&timezone=America/New_York&format=json&api_version=v2.1&include_permissions=true&show_preferences=true&extra_data=true&debug_mode=false&cache_control=no-cache";
+
+    const longJwtPayload = {
+      iss: "https://very-long-issuer-domain-name-for-testing-jwt-layout-breaking.com",
+      aud: "extremely-long-audience-client-id-that-should-cause-layout-issues-if-not-properly-handled-with-css-constraints",
+      sub: "user123",
+      email:
+        "john.doe.with.very.long.email.address@extremely-long-domain-name-for-testing-layout-scenarios.com",
+      email_verified: true,
+      name: "John Doe with Very Long Name That Should Test Text Wrapping",
+      picture: longPictureUrl,
+      profile: longProfileUrl,
+      iat: 1725390400,
+      exp: 1725394000,
+      nbf: 1725390400,
+      scope:
+        "openid email profile read:user read:repositories write:repositories admin:org admin:public_key admin:repo_hook admin:org_hook gist notifications user:email user:follow delete_repo write:discussion read:discussion",
+      custom_claim_with_long_name:
+        "this-is-a-very-long-custom-claim-value-that-contains-no-spaces-and-should-test-word-breaking-behavior-in-the-jwt-display-component",
+      another_long_url:
+        "https://api.service-with-very-long-name.com/v1/endpoints/with/many/path/segments/that/go/on/and/on/user/profile/data/extended/information/detailed/view?access_token=very_long_access_token_value_1234567890abcdefghijklmnopqrstuvwxyz&refresh_token=another_long_token_value&scope=full_access&client_id=long_client_identifier&redirect_uri=https://callback.url.with.long.domain.name.com/oauth/callback",
+    };
+
+    // Create a JWT token with the long payload
+    const header = { alg: "RS256", typ: "JWT", kid: "123" };
+    const encodedHeader = btoa(JSON.stringify(header))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+    const encodedPayload = btoa(JSON.stringify(longJwtPayload))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=/g, "");
+    const sampleIdToken = `${encodedHeader}.${encodedPayload}.example-signature-not-real-but-very-long-to-test-layout-breaking-scenarios`;
+
+    const sampleRefreshToken =
+      "refresh_token_with_very_long_value_1234567890abcdefghijklmnopqrstuvwxyz_additional_suffix_to_make_it_longer";
+
+    const sampleUser: AppUser = {
+      provider: "google",
+      avatarUrl: longPictureUrl,
+      name: "Demo User",
+      email: "demo@example.com",
+      profileUrl: "https://example.com/profile/demo",
+      username: "demo",
+      rawData: {
+        id: "demo123",
+        email: "demo@example.com",
+        verified_email: true,
+        name: "Demo User",
+        given_name: "Demo",
+        family_name: "User",
+        picture: longPictureUrl,
+        locale: "en",
+      },
+      accessToken: sampleAccessToken,
+      idToken: sampleIdToken,
+      refreshToken: sampleRefreshToken,
+      scopes: ["openid", "email", "profile"],
+      tokenType: "Bearer",
+      tokenExpiresAt: Date.now() + 3600000, // 1 hour from now
+      jwtPayload: longJwtPayload,
+    };
+
+    setUser(sampleUser);
+    setError(null);
+    setIsLoading(false);
   };
 
   const renderContent = () => {
@@ -907,12 +992,23 @@ const App: React.FC = () => {
       <footer className="w-full border-t border-slate-800/60 mt-8">
         <div className="mx-auto max-w-4xl px-4 py-6 text-center text-sm text-slate-600 flex flex-col items-center gap-2">
           <p>Built for demonstration and troubleshooting.</p>
-          <button
-            onClick={() => setShowHelp(true)}
-            className="text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
-          >
-            Help & Shortcuts
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowHelp(true)}
+              className="text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+            >
+              Help & Shortcuts
+            </button>
+            {process.env.NODE_ENV === "development" && (
+              <button
+                onClick={createSampleTokenDemo}
+                className="text-xs px-3 py-1.5 rounded-md border border-emerald-600 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-700/20"
+                title="Demo the enhanced token display with sample JWT tokens"
+              >
+                Demo Token Display
+              </button>
+            )}
+          </div>
         </div>
       </footer>
       <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />

@@ -8,6 +8,7 @@ import {
 } from "./icons";
 import { getFieldDoc } from "../fieldDocs";
 import JsonTree from "./JsonTree";
+import TokenDisplay from "./TokenDisplay";
 
 interface UserInfoDisplayProps {
   user: AppUser;
@@ -48,8 +49,6 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   onTokenRevocation,
 }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const [tokenVisible, setTokenVisible] = useState(false);
-  const [tokenCopied, setTokenCopied] = useState(false);
   const [viewMode, setViewMode] = useState<"both" | "table" | "json">(() => {
     const stored = localStorage.getItem("view_mode");
     return stored === "table" || stored === "json" || stored === "both"
@@ -97,17 +96,6 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
         console.error("Could not copy text: ", err);
       },
     );
-  };
-
-  const handleCopyToken = () => {
-    if (!user.accessToken) return;
-    navigator.clipboard
-      .writeText(user.accessToken)
-      .then(() => {
-        setTokenCopied(true);
-        setTimeout(() => setTokenCopied(false), 2000);
-      })
-      .catch((err) => console.error("Could not copy token", err));
   };
 
   // Build a stable ordered list of top-level primitive fields for table view
@@ -319,44 +307,30 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
               </p>
             )}
           </div>
-          {user.accessToken && !safeMode && (
-            <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 text-left space-y-2">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs uppercase tracking-wide text-slate-400">
-                  Access Token
+          {/* Enhanced Token Display */}
+          {!safeMode && (
+            <TokenDisplay
+              accessToken={user.accessToken}
+              idToken={user.idToken}
+              refreshToken={user.refreshToken}
+              safeMode={safeMode}
+            />
+          )}
+
+          {/* Token Management Actions */}
+          {(user.accessToken || user.refreshToken) && !safeMode && (
+            <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 space-y-2">
+              <div className="w-full mb-2">
+                <h4 className="text-xs uppercase tracking-wide text-slate-400 mb-1">
+                  Token Lifecycle Management
                 </h4>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setTokenVisible((v) => !v)}
-                    className="text-[10px] px-2 py-1 rounded bg-slate-700/60 border border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    {tokenVisible ? "Hide" : "Show"}
-                  </button>
-                  <button
-                    onClick={handleCopyToken}
-                    className="text-[10px] px-2 py-1 rounded bg-slate-700/60 border border-slate-600 text-slate-300 hover:bg-slate-700"
-                  >
-                    {tokenCopied ? "Copied!" : "Copy"}
-                  </button>
-                </div>
+                <p className="text-[10px] text-slate-500 leading-relaxed">
+                  Demonstrates OAuth token refresh and revocation best practices
+                  for secure application development.
+                </p>
               </div>
-              <code className="block text-[10px] sm:text-xs break-all text-slate-300 select-all">
-                {tokenVisible
-                  ? user.accessToken
-                  : user.accessToken.replace(/.(?=.{4})/g, "•")}
-              </code>
-              
-              {/* Token Management Actions */}
-              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-600">
-                <div className="w-full mb-2">
-                  <h5 className="text-[10px] uppercase tracking-wide text-slate-400 mb-1">
-                    Token Lifecycle Management
-                  </h5>
-                  <p className="text-[10px] text-slate-500 leading-relaxed">
-                    Demonstrates OAuth token refresh and revocation best practices for secure application development.
-                  </p>
-                </div>
-                
+
+              <div className="flex flex-wrap gap-2">
                 {user.refreshToken && onTokenRefresh ? (
                   <div className="flex flex-col">
                     <button
@@ -367,7 +341,8 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                       🔄 Refresh Token
                     </button>
                     <div className="text-[9px] text-slate-500 mt-1 max-w-48">
-                      Refresh tokens allow getting new access tokens without re-authentication
+                      Refresh tokens allow getting new access tokens without
+                      re-authentication
                     </div>
                   </div>
                 ) : (
@@ -376,13 +351,13 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                       🔄 No Refresh Token
                     </div>
                     <div className="text-[9px] text-slate-500 mt-1 max-w-48">
-                      {user.provider === 'github' 
-                        ? 'GitHub OAuth Apps don\'t support refresh tokens (only GitHub Apps do)'
-                        : 'This session doesn\'t have a refresh token available'}
+                      {user.provider === "github"
+                        ? "GitHub OAuth Apps don't support refresh tokens (only GitHub Apps do)"
+                        : "This session doesn't have a refresh token available"}
                     </div>
                   </div>
                 )}
-                
+
                 {onTokenRevocation && (
                   <div className="flex flex-col">
                     <button
@@ -393,7 +368,8 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                       🚫 Revoke Token
                     </button>
                     <div className="text-[9px] text-slate-500 mt-1 max-w-48">
-                      Immediately invalidates the token - important for security when compromised
+                      Immediately invalidates the token - important for security
+                      when compromised
                     </div>
                   </div>
                 )}

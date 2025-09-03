@@ -45,36 +45,48 @@ const HelpModal: React.FC<HelpModalProps> = ({ open, onClose }) => {
             ))}
           </ul>
         </div>
-        
+
         <div>
           <h3 className="text-sm uppercase tracking-wide text-slate-400 mb-2">
             Token Lifecycle Management
           </h3>
           <div className="space-y-3 text-sm text-slate-300">
             <div>
-              <h4 className="font-semibold text-slate-200 mb-1">🔄 Token Refresh</h4>
+              <h4 className="font-semibold text-slate-200 mb-1">
+                🔄 Token Refresh
+              </h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Use refresh tokens to obtain new access tokens without re-authenticating. 
-                Refresh tokens typically have longer lifespans and help maintain user sessions securely.
+                Use refresh tokens to obtain new access tokens without
+                re-authenticating. Refresh tokens typically have longer
+                lifespans and help maintain user sessions securely.
                 <br />
                 <strong>Supported:</strong> Google, GitLab, Auth0, LinkedIn
                 <br />
-                <strong>Not supported:</strong> GitHub OAuth Apps (only GitHub Apps support refresh tokens)
+                <strong>Not supported:</strong> GitHub OAuth Apps (only GitHub
+                Apps support refresh tokens)
               </p>
             </div>
             <div>
-              <h4 className="font-semibold text-slate-200 mb-1">🚫 Token Revocation</h4>
+              <h4 className="font-semibold text-slate-200 mb-1">
+                🚫 Token Revocation
+              </h4>
               <p className="text-xs text-slate-400 leading-relaxed">
-                Revoke access tokens to immediately invalidate them for security. 
-                This is important when tokens are compromised or users want to revoke app access.
+                Revoke access tokens to immediately invalidate them for
+                security. This is important when tokens are compromised or users
+                want to revoke app access.
                 <br />
-                <strong>Best practice:</strong> Always provide token revocation in production apps.
+                <strong>Best practice:</strong> Always provide token revocation
+                in production apps.
               </p>
             </div>
             <div>
-              <h4 className="font-semibold text-slate-200 mb-1">🔐 Security Guidelines</h4>
+              <h4 className="font-semibold text-slate-200 mb-1">
+                🔐 Security Guidelines
+              </h4>
               <ul className="text-xs text-slate-400 space-y-1 ml-3 list-disc">
-                <li>Store refresh tokens securely (encrypted, httpOnly cookies)</li>
+                <li>
+                  Store refresh tokens securely (encrypted, httpOnly cookies)
+                </li>
                 <li>Implement automatic token refresh before expiration</li>
                 <li>Always provide a way for users to revoke access</li>
                 <li>Use shortest practical token lifespans</li>

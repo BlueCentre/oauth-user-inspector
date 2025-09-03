@@ -21,15 +21,15 @@ This application demonstrates OAuth token lifecycle best practices including:
 
 #### Provider Support
 
-| Provider | Token Refresh | Token Revocation | Notes |
-|----------|---------------|------------------|-------|
-| Google | ✅ | ✅ | Full OAuth 2.0 support |
-| GitLab | ✅ | ✅ | Enterprise-ready features |
-| Auth0 | ✅ | ✅ | Identity platform support |
-| LinkedIn | ✅ | ⚠️ | Limited revocation API |
-| GitHub | ❌ | ✅ | OAuth Apps don't support refresh tokens* |
+| Provider | Token Refresh | Token Revocation | Notes                                     |
+| -------- | ------------- | ---------------- | ----------------------------------------- |
+| Google   | ✅            | ✅               | Full OAuth 2.0 support                    |
+| GitLab   | ✅            | ✅               | Enterprise-ready features                 |
+| Auth0    | ✅            | ✅               | Identity platform support                 |
+| LinkedIn | ✅            | ⚠️               | Limited revocation API                    |
+| GitHub   | ❌            | ✅               | OAuth Apps don't support refresh tokens\* |
 
-*Note: GitHub Apps (not OAuth Apps) do support refresh tokens, but this demo uses OAuth Apps for simplicity.
+\*Note: GitHub Apps (not OAuth Apps) do support refresh tokens, but this demo uses OAuth Apps for simplicity.
 
 ### Educational Value
 

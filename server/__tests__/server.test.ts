@@ -149,67 +149,77 @@ const restHandlers = [
   http.post("https://oauth2.googleapis.com/token", async ({ request }) => {
     const body = await request.text();
     if (body.includes("grant_type=refresh_token")) {
-      return HttpResponse.json({ 
+      return HttpResponse.json({
         access_token: "new_google_access_token",
         refresh_token: "new_google_refresh_token",
         expires_in: 3600,
-        token_type: "Bearer"
+        token_type: "Bearer",
       });
     } else {
-      return HttpResponse.json({ 
+      return HttpResponse.json({
         access_token: "new_google_access_token",
         refresh_token: "new_google_refresh_token",
         expires_in: 3600,
-        token_type: "Bearer"
+        token_type: "Bearer",
       });
     }
   }),
   http.post("https://gitlab.com/oauth/token", async ({ request }) => {
     const body = await request.text();
-    const isRefresh = body.includes('"grant_type":"refresh_token"') || body.includes('grant_type=refresh_token');
+    const isRefresh =
+      body.includes('"grant_type":"refresh_token"') ||
+      body.includes("grant_type=refresh_token");
     if (isRefresh) {
-      return HttpResponse.json({ 
+      return HttpResponse.json({
         access_token: "new_gitlab_access_token",
         refresh_token: "new_gitlab_refresh_token",
-        expires_in: 7200
+        expires_in: 7200,
       });
     } else {
-      return HttpResponse.json({ 
-        access_token: "test_gitlab_access_token"
+      return HttpResponse.json({
+        access_token: "test_gitlab_access_token",
       });
     }
   }),
-  http.post("https://oauth-user-inspector.us.auth0.com/oauth/token", async ({ request }) => {
-    const body = await request.text();
-    const isRefresh = body.includes('"grant_type":"refresh_token"') || body.includes('grant_type=refresh_token');
-    if (isRefresh) {
-      return HttpResponse.json({ 
-        access_token: "new_auth0_access_token",
-        refresh_token: "new_auth0_refresh_token",
-        expires_in: 86400
-      });
-    } else {
-      return HttpResponse.json({ 
-        access_token: "test_auth0_access_token"
-      });
-    }
-  }),
-  http.post("https://www.linkedin.com/oauth/v2/accessToken", async ({ request }) => {
-    const body = await request.text();
-    const isRefresh = body.includes('grant_type=refresh_token');
-    if (isRefresh) {
-      return HttpResponse.json({ 
-        access_token: "new_linkedin_access_token",
-        refresh_token: "new_linkedin_refresh_token",
-        expires_in: 5184000
-      });
-    } else {
-      return HttpResponse.json({ 
-        access_token: "test_linkedin_access_token"
-      });
-    }
-  }),
-  
+  http.post(
+    "https://oauth-user-inspector.us.auth0.com/oauth/token",
+    async ({ request }) => {
+      const body = await request.text();
+      const isRefresh =
+        body.includes('"grant_type":"refresh_token"') ||
+        body.includes("grant_type=refresh_token");
+      if (isRefresh) {
+        return HttpResponse.json({
+          access_token: "new_auth0_access_token",
+          refresh_token: "new_auth0_refresh_token",
+          expires_in: 86400,
+        });
+      } else {
+        return HttpResponse.json({
+          access_token: "test_auth0_access_token",
+        });
+      }
+    },
+  ),
+  http.post(
+    "https://www.linkedin.com/oauth/v2/accessToken",
+    async ({ request }) => {
+      const body = await request.text();
+      const isRefresh = body.includes("grant_type=refresh_token");
+      if (isRefresh) {
+        return HttpResponse.json({
+          access_token: "new_linkedin_access_token",
+          refresh_token: "new_linkedin_refresh_token",
+          expires_in: 5184000,
+        });
+      } else {
+        return HttpResponse.json({
+          access_token: "test_linkedin_access_token",
+        });
+      }
+    },
+  ),
+
   // OAuth revocation handlers
   http.post("https://oauth2.googleapis.com/revoke", () => {
     return new HttpResponse(null, { status: 200 });
@@ -427,8 +437,14 @@ describe("/api/oauth/refresh", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty("access_token", "new_google_access_token");
-    expect(response.body).toHaveProperty("refresh_token", "new_google_refresh_token");
+    expect(response.body).toHaveProperty(
+      "access_token",
+      "new_google_access_token",
+    );
+    expect(response.body).toHaveProperty(
+      "refresh_token",
+      "new_google_refresh_token",
+    );
   });
 
   it("should refresh a GitLab token successfully", async () => {
@@ -441,7 +457,10 @@ describe("/api/oauth/refresh", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty("access_token", "new_gitlab_access_token");
+    expect(response.body).toHaveProperty(
+      "access_token",
+      "new_gitlab_access_token",
+    );
   });
 
   it("should refresh an Auth0 token successfully", async () => {
@@ -455,7 +474,10 @@ describe("/api/oauth/refresh", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty("access_token", "new_auth0_access_token");
+    expect(response.body).toHaveProperty(
+      "access_token",
+      "new_auth0_access_token",
+    );
   });
 
   it("should return 400 for GitHub (no refresh token support)", async () => {
@@ -469,7 +491,9 @@ describe("/api/oauth/refresh", () => {
 
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("error");
-    expect(response.body.error).toContain("GitHub OAuth Apps do not support refresh tokens");
+    expect(response.body.error).toContain(
+      "GitHub OAuth Apps do not support refresh tokens",
+    );
   });
 
   it("should return 400 for missing refresh token", async () => {
@@ -481,7 +505,10 @@ describe("/api/oauth/refresh", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("error", "Missing required parameters: refreshToken, provider.");
+    expect(response.body).toHaveProperty(
+      "error",
+      "Missing required parameters: refreshToken, provider.",
+    );
   });
 
   it("should return 400 for unsupported provider", async () => {
@@ -505,7 +532,10 @@ describe("/api/oauth/refresh", () => {
     });
 
     expect(response.status).toBe(200);
-    expect(response.body).toHaveProperty("access_token", "new_google_access_token");
+    expect(response.body).toHaveProperty(
+      "access_token",
+      "new_google_access_token",
+    );
   });
 });
 
@@ -522,7 +552,10 @@ describe("/api/oauth/revoke", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("success", true);
-    expect(response.body).toHaveProperty("message", "Token revoked successfully.");
+    expect(response.body).toHaveProperty(
+      "message",
+      "Token revoked successfully.",
+    );
   });
 
   it("should revoke a GitHub token successfully", async () => {
@@ -536,7 +569,10 @@ describe("/api/oauth/revoke", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("success", true);
-    expect(response.body).toHaveProperty("message", "Token revoked successfully.");
+    expect(response.body).toHaveProperty(
+      "message",
+      "Token revoked successfully.",
+    );
   });
 
   it("should revoke a GitLab token successfully", async () => {
@@ -550,7 +586,10 @@ describe("/api/oauth/revoke", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("success", true);
-    expect(response.body).toHaveProperty("message", "Token revoked successfully.");
+    expect(response.body).toHaveProperty(
+      "message",
+      "Token revoked successfully.",
+    );
   });
 
   it("should handle LinkedIn token revocation gracefully", async () => {
@@ -564,7 +603,9 @@ describe("/api/oauth/revoke", () => {
 
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("success", true);
-    expect(response.body.message).toContain("LinkedIn doesn't provide a token revocation endpoint");
+    expect(response.body.message).toContain(
+      "LinkedIn doesn't provide a token revocation endpoint",
+    );
   });
 
   it("should return 400 for missing token", async () => {
@@ -576,7 +617,10 @@ describe("/api/oauth/revoke", () => {
     });
 
     expect(response.status).toBe(400);
-    expect(response.body).toHaveProperty("error", "Missing required parameters: token, provider.");
+    expect(response.body).toHaveProperty(
+      "error",
+      "Missing required parameters: token, provider.",
+    );
   });
 
   it("should return 400 for unsupported provider", async () => {
