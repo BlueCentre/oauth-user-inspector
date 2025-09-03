@@ -205,6 +205,8 @@ const App: React.FC = () => {
         let tokenType: string | undefined;
         let tokenExpiresAt: number | undefined;
         let jwtPayload: Record<string, any> | undefined;
+        let refreshToken: string | undefined;
+        let idToken: string | undefined;
         try {
           const metaRaw = localStorage.getItem("auth_meta");
           if (metaRaw) {
@@ -214,7 +216,9 @@ const App: React.FC = () => {
             if (meta.token_type) tokenType = meta.token_type;
             if (meta.expires_in && meta.fetched_at)
               tokenExpiresAt = meta.fetched_at + meta.expires_in * 1000;
+            if (meta.refresh_token) refreshToken = meta.refresh_token;
             if (meta.id_token) {
+              idToken = meta.id_token;
               const parts = meta.id_token.split(".");
               if (parts.length === 3) {
                 try {
@@ -238,6 +242,8 @@ const App: React.FC = () => {
             username: githubUser.login,
             rawData: githubUser,
             accessToken: token,
+            refreshToken,
+            idToken,
             scopes,
             tokenType,
             tokenExpiresAt,
@@ -254,6 +260,8 @@ const App: React.FC = () => {
             username: googleUser.email,
             rawData: googleUser,
             accessToken: token,
+            refreshToken,
+            idToken,
             scopes,
             tokenType,
             tokenExpiresAt,
@@ -270,6 +278,8 @@ const App: React.FC = () => {
             username: gitlabUser.username,
             rawData: gitlabUser,
             accessToken: token,
+            refreshToken,
+            idToken,
             scopes,
             tokenType,
             tokenExpiresAt,
@@ -290,6 +300,8 @@ const App: React.FC = () => {
               auth0User.sub,
             rawData: auth0User,
             accessToken: token,
+            refreshToken,
+            idToken,
             scopes,
             tokenType,
             tokenExpiresAt,
@@ -333,6 +345,8 @@ const App: React.FC = () => {
             username: linkedinUser.id,
             rawData: { ...linkedinUser, emailAddress: email },
             accessToken: token,
+            refreshToken,
+            idToken,
             scopes,
             tokenType,
             tokenExpiresAt,
@@ -597,6 +611,197 @@ const App: React.FC = () => {
     }
   };
 
+  const handleTokenRefresh = async () => {
+    if (!user || !user.refreshToken) {
+      setError("No refresh token available for this session.");
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Get stored credentials for non-hosted flow or use hosted flag
+      const metaRaw = localStorage.getItem("auth_meta");
+      let isHosted = false;
+      let clientId = "";
+      let clientSecret = "";
+      let auth0Domain = "";
+
+      // Try to determine if this was a hosted OAuth session
+      // For simplicity, we'll try hosted first, then fall back to stored credentials
+      try {
+        const response = await fetch("/api/oauth/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: user.provider,
+            refreshToken: user.refreshToken,
+            isHosted: true,
+          }),
+        });
+
+        if (response.ok) {
+          const tokenData = await response.json();
+          await handleRefreshSuccess(tokenData);
+          return;
+        }
+      } catch (hostedError) {
+        // Hosted refresh failed, try with stored credentials
+      }
+
+      // Try with stored credentials if available
+      const credsString = sessionStorage.getItem("oauth_credentials");
+      if (credsString) {
+        const creds = JSON.parse(credsString);
+        const response = await fetch("/api/oauth/refresh", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: user.provider,
+            refreshToken: user.refreshToken,
+            isHosted: false,
+            clientId: creds.clientId,
+            clientSecret: creds.clientSecret,
+            auth0Domain: creds.auth0Domain,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Failed to refresh token");
+        }
+
+        const tokenData = await response.json();
+        await handleRefreshSuccess(tokenData);
+      } else {
+        throw new Error("No OAuth credentials available for token refresh. This session may have been started with hosted OAuth.");
+      }
+    } catch (err: any) {
+      setError(`Token refresh failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefreshSuccess = async (tokenData: any) => {
+    const {
+      access_token,
+      refresh_token,
+      expires_in,
+      token_type,
+      scope,
+      id_token,
+    } = tokenData;
+
+    if (!access_token) {
+      throw new Error("No access token received from refresh");
+    }
+
+    // Update stored tokens
+    localStorage.setItem(
+      "auth_details",
+      JSON.stringify({ token: access_token, provider: user!.provider }),
+    );
+
+    // Update metadata with new tokens
+    const currentMeta = JSON.parse(localStorage.getItem("auth_meta") || "{}");
+    const updatedMeta = {
+      ...currentMeta,
+      ...(refresh_token && { refresh_token }),
+      ...(expires_in && { expires_in }),
+      ...(token_type && { token_type }),
+      ...(scope && { scope }),
+      ...(id_token && { id_token }),
+      fetched_at: Date.now(),
+    };
+
+    localStorage.setItem("auth_meta", JSON.stringify(updatedMeta));
+
+    // Refresh user data with new token
+    await fetchUser(access_token, user!.provider);
+  };
+
+  const handleTokenRevocation = async () => {
+    if (!user || !user.accessToken) {
+      setError("No access token available to revoke.");
+      return;
+    }
+
+    if (!confirm("Are you sure you want to revoke your access token? This will log you out.")) {
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      // Try hosted revocation first
+      try {
+        const response = await fetch("/api/oauth/revoke", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: user.provider,
+            token: user.accessToken,
+            tokenTypeHint: "access_token",
+            isHosted: true,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            handleLogout();
+            setError(null);
+            alert(result.message || "Token revoked successfully!");
+            return;
+          }
+        }
+      } catch (hostedError) {
+        // Hosted revocation failed, try with stored credentials
+      }
+
+      // Try with stored credentials if available
+      const credsString = sessionStorage.getItem("oauth_credentials");
+      if (credsString) {
+        const creds = JSON.parse(credsString);
+        const response = await fetch("/api/oauth/revoke", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider: user.provider,
+            token: user.accessToken,
+            tokenTypeHint: "access_token",
+            isHosted: false,
+            clientId: creds.clientId,
+            clientSecret: creds.clientSecret,
+            auth0Domain: creds.auth0Domain,
+          }),
+        });
+
+        const result = await response.json();
+        
+        if (response.ok && result.success) {
+          handleLogout();
+          setError(null);
+          alert(result.message || "Token revoked successfully!");
+        } else {
+          throw new Error(result.error || "Failed to revoke token");
+        }
+      } else {
+        // For providers like LinkedIn that don't support revocation, just log out locally
+        handleLogout();
+        setError(null);
+        alert("Session ended locally. Some providers don't support token revocation.");
+      }
+    } catch (err: any) {
+      setError(`Token revocation failed: ${err.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -615,6 +820,8 @@ const App: React.FC = () => {
             user={user}
             safeMode={safeMode}
             importedSnapshot={importedSnapshot}
+            onTokenRefresh={handleTokenRefresh}
+            onTokenRevocation={handleTokenRevocation}
           />
         </>
       );

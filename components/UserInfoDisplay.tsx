@@ -13,6 +13,8 @@ interface UserInfoDisplayProps {
   user: AppUser;
   safeMode?: boolean;
   importedSnapshot?: any | null;
+  onTokenRefresh?: () => void;
+  onTokenRevocation?: () => void;
 }
 
 const isUrl = (val: string) => /^https?:\/\//i.test(val);
@@ -42,6 +44,8 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   user,
   safeMode = false,
   importedSnapshot,
+  onTokenRefresh,
+  onTokenRevocation,
 }) => {
   const [isCopied, setIsCopied] = useState(false);
   const [tokenVisible, setTokenVisible] = useState(false);
@@ -341,6 +345,33 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                   ? user.accessToken
                   : user.accessToken.replace(/.(?=.{4})/g, "•")}
               </code>
+              
+              {/* Token Management Actions */}
+              <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-600">
+                {user.refreshToken && onTokenRefresh && (
+                  <button
+                    onClick={onTokenRefresh}
+                    className="text-[10px] px-3 py-1.5 rounded bg-blue-700/60 border border-blue-600 text-blue-200 hover:bg-blue-700 transition-colors"
+                    title="Use refresh token to get a new access token"
+                  >
+                    🔄 Refresh Token
+                  </button>
+                )}
+                {onTokenRevocation && (
+                  <button
+                    onClick={onTokenRevocation}
+                    className="text-[10px] px-3 py-1.5 rounded bg-red-700/60 border border-red-600 text-red-200 hover:bg-red-700 transition-colors"
+                    title="Revoke the access token (will log you out)"
+                  >
+                    🚫 Revoke Token
+                  </button>
+                )}
+                {!user.refreshToken && (
+                  <div className="text-[10px] text-slate-500 py-1.5">
+                    No refresh token available for this provider/session
+                  </div>
+                )}
+              </div>
             </div>
           )}
           {(user.scopes ||

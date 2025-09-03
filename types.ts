@@ -150,3 +150,38 @@ export interface AppUser {
   tokenExpiresAt?: number; // epoch ms if known
   jwtPayload?: Record<string, any>; // decoded JWT if token is JWT
 }
+
+// Token refresh request/response interfaces
+export interface TokenRefreshRequest {
+  provider: AuthProvider;
+  refreshToken: string;
+  clientId?: string;
+  clientSecret?: string;
+  isHosted?: boolean;
+  auth0Domain?: string;
+}
+
+export interface TokenRefreshResponse {
+  access_token: string;
+  refresh_token?: string;
+  expires_in?: number;
+  token_type?: string;
+  scope?: string;
+  id_token?: string;
+}
+
+// Token revocation request/response interfaces
+export interface TokenRevocationRequest {
+  provider: AuthProvider;
+  token: string;
+  tokenTypeHint?: 'access_token' | 'refresh_token';
+  clientId?: string;
+  clientSecret?: string;
+  isHosted?: boolean;
+  auth0Domain?: string;
+}
+
+export interface TokenRevocationResponse {
+  success: boolean;
+  message?: string;
+}
