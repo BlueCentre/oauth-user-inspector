@@ -299,8 +299,7 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
 
       if (provider === "auth0" && !auth0Domain) {
         reqLogger.warn("Auth0 token exchange failed due to missing domain", {
-          hint:
-            "Ensure AUTH0_APP_OAUTH_DOMAIN secret exists or pass auth0Domain from client.",
+          hint: "Ensure AUTH0_APP_OAUTH_DOMAIN secret exists or pass auth0Domain from client.",
         });
       }
 
@@ -455,28 +454,35 @@ app.get(
     };
 
     try {
-      const [github, google, gitlab, auth0Id, auth0Secret, auth0Domain, linkedin] =
-        await Promise.all([
-          Promise.all([
-            secretExists("GITHUB_APP_OAUTH_CLIENT_ID"),
-            secretExists("GITHUB_APP_OAUTH_CLIENT_SECRET"),
-          ]).then(([id, secret]) => id && secret),
-          Promise.all([
-            secretExists("GOOGLE_APP_OAUTH_CLIENT_ID"),
-            secretExists("GOOGLE_APP_OAUTH_CLIENT_SECRET"),
-          ]).then(([id, secret]) => id && secret),
-          Promise.all([
-            secretExists("GITLAB_APP_OAUTH_CLIENT_ID"),
-            secretExists("GITLAB_APP_OAUTH_CLIENT_SECRET"),
-          ]).then(([id, secret]) => id && secret),
-            secretExists("AUTH0_APP_OAUTH_CLIENT_ID"),
-            secretExists("AUTH0_APP_OAUTH_CLIENT_SECRET"),
-            secretExists("AUTH0_APP_OAUTH_DOMAIN"),
-          Promise.all([
-            secretExists("LINKEDIN_APP_OAUTH_CLIENT_ID"),
-            secretExists("LINKEDIN_APP_OAUTH_CLIENT_SECRET"),
-          ]).then(([id, secret]) => id && secret),
-        ]);
+      const [
+        github,
+        google,
+        gitlab,
+        auth0Id,
+        auth0Secret,
+        auth0Domain,
+        linkedin,
+      ] = await Promise.all([
+        Promise.all([
+          secretExists("GITHUB_APP_OAUTH_CLIENT_ID"),
+          secretExists("GITHUB_APP_OAUTH_CLIENT_SECRET"),
+        ]).then(([id, secret]) => id && secret),
+        Promise.all([
+          secretExists("GOOGLE_APP_OAUTH_CLIENT_ID"),
+          secretExists("GOOGLE_APP_OAUTH_CLIENT_SECRET"),
+        ]).then(([id, secret]) => id && secret),
+        Promise.all([
+          secretExists("GITLAB_APP_OAUTH_CLIENT_ID"),
+          secretExists("GITLAB_APP_OAUTH_CLIENT_SECRET"),
+        ]).then(([id, secret]) => id && secret),
+        secretExists("AUTH0_APP_OAUTH_CLIENT_ID"),
+        secretExists("AUTH0_APP_OAUTH_CLIENT_SECRET"),
+        secretExists("AUTH0_APP_OAUTH_DOMAIN"),
+        Promise.all([
+          secretExists("LINKEDIN_APP_OAUTH_CLIENT_ID"),
+          secretExists("LINKEDIN_APP_OAUTH_CLIENT_SECRET"),
+        ]).then(([id, secret]) => id && secret),
+      ]);
 
       const availability = {
         github,
@@ -490,7 +496,9 @@ app.get(
       endTimer();
       res.json({ availability });
     } catch (error: any) {
-      logError(reqLogger, error, { endpoint: "/api/oauth-hosted/availability" });
+      logError(reqLogger, error, {
+        endpoint: "/api/oauth-hosted/availability",
+      });
       endTimer();
       res.status(500).json({ error: "Failed to check availability." });
     }

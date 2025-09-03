@@ -10,6 +10,7 @@ import {
   ClipboardCheckIcon,
 } from "./icons";
 import Tabs, { Tab } from "./Tabs";
+import ScopeSelector from "./ScopeSelector";
 
 interface LoginScreenProps {
   onOAuthLogin: (
@@ -17,10 +18,11 @@ interface LoginScreenProps {
     clientId: string,
     clientSecret: string,
     auth0Domain?: string,
+    scopes?: string,
   ) => void;
   onPatLogin: (pat: string) => void;
   onGcloudTokenLogin: (token: string) => void;
-  onHostedOAuthLogin: (provider: AuthProvider) => void;
+  onHostedOAuthLogin: (provider: AuthProvider, scopes?: string) => void;
   isLoading: boolean;
   hostedAvailability?: Partial<Record<AuthProvider, boolean>>;
 }
@@ -37,15 +39,20 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
 }) => {
   const [githubClientId, setGithubClientId] = useState("");
   const [githubClientSecret, setGithubClientSecret] = useState("");
+  const [githubScopes, setGithubScopes] = useState("");
   const [googleClientId, setGoogleClientId] = useState("");
   const [googleClientSecret, setGoogleClientSecret] = useState("");
+  const [googleScopes, setGoogleScopes] = useState("");
   const [gitlabClientId, setGitlabClientId] = useState("");
   const [gitlabClientSecret, setGitlabClientSecret] = useState("");
+  const [gitlabScopes, setGitlabScopes] = useState("");
   const [auth0ClientId, setAuth0ClientId] = useState("");
   const [auth0ClientSecret, setAuth0ClientSecret] = useState("");
   const [auth0Domain, setAuth0Domain] = useState("");
+  const [auth0Scopes, setAuth0Scopes] = useState("");
   const [linkedinClientId, setLinkedinClientId] = useState("");
   const [linkedinClientSecret, setLinkedinClientSecret] = useState("");
+  const [linkedinScopes, setLinkedinScopes] = useState("");
   const [pat, setPat] = useState("");
   const [gcloudToken, setGcloudToken] = useState("");
   const [copiedProvider, setCopiedProvider] = useState<AuthProvider | null>(
@@ -227,11 +234,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     </button>
                   </div>
                 </div>
+                <ScopeSelector
+                  provider="github"
+                  onScopeChange={setGithubScopes}
+                />
               </div>
               <div className="mt-6">
                 <button
                   onClick={() =>
-                    onOAuthLogin("github", githubClientId, githubClientSecret)
+                    onOAuthLogin(
+                      "github",
+                      githubClientId,
+                      githubClientSecret,
+                      undefined,
+                      githubScopes,
+                    )
                   }
                   disabled={!githubClientId || !githubClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
@@ -350,7 +367,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="mt-6">
                 <button
-                  onClick={() => onHostedOAuthLogin("github")}
+                  onClick={() => onHostedOAuthLogin("github", githubScopes)}
                   disabled={isLoading || !isHostedAvailable("github")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
@@ -457,11 +474,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     </button>
                   </div>
                 </div>
+                <ScopeSelector
+                  provider="google"
+                  onScopeChange={setGoogleScopes}
+                />
               </div>
               <div className="mt-6">
                 <button
                   onClick={() =>
-                    onOAuthLogin("google", googleClientId, googleClientSecret)
+                    onOAuthLogin(
+                      "google",
+                      googleClientId,
+                      googleClientSecret,
+                      undefined,
+                      googleScopes,
+                    )
                   }
                   disabled={!googleClientId || !googleClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
@@ -545,7 +572,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="mt-6">
                 <button
-                  onClick={() => onHostedOAuthLogin("google")}
+                  onClick={() => onHostedOAuthLogin("google", googleScopes)}
                   disabled={isLoading || !isHostedAvailable("google")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
@@ -652,11 +679,21 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     </button>
                   </div>
                 </div>
+                <ScopeSelector
+                  provider="gitlab"
+                  onScopeChange={setGitlabScopes}
+                />
               </div>
               <div className="mt-6">
                 <button
                   onClick={() =>
-                    onOAuthLogin("gitlab", gitlabClientId, gitlabClientSecret)
+                    onOAuthLogin(
+                      "gitlab",
+                      gitlabClientId,
+                      gitlabClientSecret,
+                      undefined,
+                      gitlabScopes,
+                    )
                   }
                   disabled={!gitlabClientId || !gitlabClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
@@ -684,7 +721,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="mt-6">
                 <button
-                  onClick={() => onHostedOAuthLogin("gitlab")}
+                  onClick={() => onHostedOAuthLogin("gitlab", gitlabScopes)}
                   disabled={isLoading || !isHostedAvailable("gitlab")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
@@ -807,6 +844,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     </button>
                   </div>
                 </div>
+                <ScopeSelector
+                  provider="auth0"
+                  onScopeChange={setAuth0Scopes}
+                />
               </div>
               <div className="mt-6">
                 <button
@@ -816,6 +857,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                       auth0ClientId,
                       auth0ClientSecret,
                       auth0Domain,
+                      auth0Scopes,
                     )
                   }
                   disabled={
@@ -849,7 +891,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="mt-6">
                 <button
-                  onClick={() => onHostedOAuthLogin("auth0")}
+                  onClick={() => onHostedOAuthLogin("auth0", auth0Scopes)}
                   disabled={isLoading || !isHostedAvailable("auth0")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >
@@ -956,6 +998,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                     </button>
                   </div>
                 </div>
+                <ScopeSelector
+                  provider="linkedin"
+                  onScopeChange={setLinkedinScopes}
+                />
               </div>
               <div className="mt-6">
                 <button
@@ -964,6 +1010,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                       "linkedin",
                       linkedinClientId,
                       linkedinClientSecret,
+                      undefined,
+                      linkedinScopes,
                     )
                   }
                   disabled={
@@ -994,7 +1042,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="mt-6">
                 <button
-                  onClick={() => onHostedOAuthLogin("linkedin")}
+                  onClick={() => onHostedOAuthLogin("linkedin", linkedinScopes)}
                   disabled={isLoading || !isHostedAvailable("linkedin")}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 transition-all"
                 >

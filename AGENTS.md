@@ -34,6 +34,7 @@ npm run build
 ```
 
 Artifacts:
+
 - Frontend: `dist/`
 - Backend: `dist-server/` (compiled from `server/`)
 
