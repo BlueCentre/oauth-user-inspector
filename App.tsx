@@ -494,6 +494,7 @@ const App: React.FC = () => {
     clientId: string,
     clientSecret: string,
     auth0Domain?: string,
+    scopes?: string,
   ) => {
     if (!clientId || !clientSecret) {
       setError(`Please provide a Client ID and Client Secret for ${provider}.`);
@@ -514,20 +515,19 @@ const App: React.FC = () => {
     const redirectUri = getRedirectUri();
 
     if (provider === "github") {
-      const scope = "read:user,user:email";
+      const scope = scopes || "read:user,user:email";
       authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=github`;
     } else if (provider === "google") {
-      const scope =
-        "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
+      const scope = scopes || "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google`;
     } else if (provider === "gitlab") {
-      const scope = "read_user";
+      const scope = scopes || "read_user";
       authUrl = `https://gitlab.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=gitlab`;
     } else if (provider === "auth0") {
-      const scope = "openid profile email";
+      const scope = scopes || "openid profile email";
       authUrl = `https://${auth0Domain}/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=auth0`;
     } else if (provider === "linkedin") {
-      const scope = "r_liteprofile r_emailaddress";
+      const scope = scopes || "r_liteprofile r_emailaddress";
       authUrl = `https://www.linkedin.com/oauth/v2/authorization?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=linkedin`;
     }
     window.location.href = authUrl;
@@ -557,7 +557,7 @@ const App: React.FC = () => {
     await fetchUser(token, "google");
   };
 
-  const handleHostedOAuthLogin = async (provider: AuthProvider) => {
+  const handleHostedOAuthLogin = async (provider: AuthProvider, scopes?: string) => {
     setError(null);
     setIsLoading(true);
 
@@ -568,6 +568,7 @@ const App: React.FC = () => {
         body: JSON.stringify({
           provider,
           redirectUri: getRedirectUri(),
+          scopes,
         }),
       });
 
