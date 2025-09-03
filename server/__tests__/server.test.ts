@@ -266,6 +266,34 @@ describe("/api/oauth/token", () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty("error");
   });
+
+  it("should handle custom scopes in OAuth token exchange", async () => {
+    const response = await request(app).post("/api/oauth/token").send({
+      code: "valid_code",
+      provider: "github",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      redirectUri: "http://localhost:3000",
+      scopes: "read:user,user:email,public_repo",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("access_token", "test_access_token");
+  });
+
+  it("should handle custom scopes in hosted OAuth", async () => {
+    const response = await request(app).post("/api/oauth/token").send({
+      code: "valid_code",
+      provider: "github",
+      scopes: "read:user,user:email,public_repo",
+      redirectUri: "http://localhost:3000",
+      isHosted: true,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("access_token", "test_access_token");
+  });
 });
 
 describe("/api/health", () => {
