@@ -177,6 +177,14 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
       const hostedCreds = await getHostedCredentials(provider);
       clientId = hostedCreds.clientId;
       clientSecret = hostedCreds.clientSecret;
+      // Hosted Auth0 also requires the domain
+      if (provider === "auth0") {
+        try {
+          auth0Domain = await getSecret("AUTH0_APP_OAUTH_DOMAIN");
+        } catch (e) {
+          // leave undefined; the provider-specific check below will handle error response
+        }
+      }
     } else if (!clientId || !clientSecret) {
       reqLogger.warn(
         "OAuth token exchange failed - missing client credentials for non-hosted flow",
@@ -388,7 +396,7 @@ app.post("/api/oauth-hosted/init", async (req: Request, res: Response) => {
     } else if (provider === "auth0") {
       // For hosted Auth0, we'll need to get the domain from configuration
       // For now, we'll use a placeholder that should be configured
-      const auth0Domain = await getSecret("AUTH0_DOMAIN").catch(
+      const auth0Domain = await getSecret("AUTH0_APP_OAUTH_DOMAIN").catch(
         () => "your-tenant.us.auth0.com",
       );
       const scope = "openid profile email";
@@ -435,7 +443,7 @@ app.get(
     };
 
     try {
-      const [github, google, gitlab, auth0Id, auth0Secret, linkedin] =
+      const [github, google, gitlab, auth0Id, auth0Secret, auth0Domain, linkedin] =
         await Promise.all([
           Promise.all([
             secretExists("GITHUB_APP_OAUTH_CLIENT_ID"),
@@ -451,6 +459,7 @@ app.get(
           ]).then(([id, secret]) => id && secret),
           secretExists("AUTH0_APP_OAUTH_CLIENT_ID"),
           secretExists("AUTH0_APP_OAUTH_CLIENT_SECRET"),
+          secretExists("AUTH0_APP_OAUTH_DOMAIN"),
           Promise.all([
             secretExists("LINKEDIN_APP_OAUTH_CLIENT_ID"),
             secretExists("LINKEDIN_APP_OAUTH_CLIENT_SECRET"),
@@ -461,7 +470,7 @@ app.get(
         github,
         google,
         gitlab,
-        auth0: auth0Id && auth0Secret,
+        auth0: auth0Id && auth0Secret && auth0Domain,
         linkedin,
       };
 
