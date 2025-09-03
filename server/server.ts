@@ -363,7 +363,9 @@ app.post("/api/oauth/refresh", async (req: Request, res: Response) => {
     });
 
     if (!refreshToken || !provider) {
-      reqLogger.warn("OAuth token refresh failed - missing required parameters");
+      reqLogger.warn(
+        "OAuth token refresh failed - missing required parameters",
+      );
       return res.status(400).json({
         error: "Missing required parameters: refreshToken, provider.",
       });
@@ -412,7 +414,8 @@ app.post("/api/oauth/refresh", async (req: Request, res: Response) => {
       // Only GitHub Apps can use refresh tokens
       reqLogger.warn("GitHub OAuth Apps do not support refresh tokens");
       return res.status(400).json({
-        error: "GitHub OAuth Apps do not support refresh tokens. Only GitHub Apps support refresh tokens.",
+        error:
+          "GitHub OAuth Apps do not support refresh tokens. Only GitHub Apps support refresh tokens.",
       });
     } else if (provider === "google") {
       refreshUrl = "https://oauth2.googleapis.com/token";
@@ -551,7 +554,9 @@ app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
     });
 
     if (!token || !provider) {
-      reqLogger.warn("OAuth token revocation failed - missing required parameters");
+      reqLogger.warn(
+        "OAuth token revocation failed - missing required parameters",
+      );
       return res.status(400).json({
         error: "Missing required parameters: token, provider.",
       });
@@ -601,7 +606,7 @@ app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
       fetchOptions.method = "DELETE";
       fetchOptions.headers = {
         Accept: "application/vnd.github.v3+json",
-        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`,
         "Content-Type": "application/json",
       };
       fetchOptions.body = JSON.stringify({
@@ -653,7 +658,8 @@ app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
       reqLogger.info("LinkedIn doesn't provide a token revocation endpoint");
       return res.json({
         success: true,
-        message: "LinkedIn doesn't provide a token revocation endpoint. The token will expire naturally according to LinkedIn's token lifetime policy.",
+        message:
+          "LinkedIn doesn't provide a token revocation endpoint. The token will expire naturally according to LinkedIn's token lifetime policy.",
       });
     } else {
       return res.status(400).json({ error: "Unsupported provider." });
@@ -666,7 +672,7 @@ app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
     });
 
     const revokeResponse = await fetch(revokeUrl, fetchOptions);
-    
+
     // Different providers handle revocation responses differently
     let success = false;
     let responseData: any = {};
@@ -682,7 +688,9 @@ app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
       success = revokeResponse.status >= 200 && revokeResponse.status < 300;
     }
 
-    if (revokeResponse.headers.get('content-type')?.includes('application/json')) {
+    if (
+      revokeResponse.headers.get("content-type")?.includes("application/json")
+    ) {
       try {
         const responseText = await revokeResponse.text();
         if (responseText.trim()) {
@@ -707,7 +715,10 @@ app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
 
       return res.status(revokeResponse.status).json({
         success: false,
-        error: responseData.error || responseData.error_description || "Failed to revoke token.",
+        error:
+          responseData.error ||
+          responseData.error_description ||
+          "Failed to revoke token.",
       });
     }
 
@@ -726,13 +737,11 @@ app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
       provider: req.body?.provider,
     });
     endTimer();
-    res
-      .status(500)
-      .json({ 
-        success: false,
-        error: "Internal server error.", 
-        message: error.message 
-      });
+    res.status(500).json({
+      success: false,
+      error: "Internal server error.",
+      message: error.message,
+    });
   }
 });
 

@@ -174,7 +174,7 @@ export interface TokenRefreshResponse {
 export interface TokenRevocationRequest {
   provider: AuthProvider;
   token: string;
-  tokenTypeHint?: 'access_token' | 'refresh_token';
+  tokenTypeHint?: "access_token" | "refresh_token";
   clientId?: string;
   clientSecret?: string;
   isHosted?: boolean;

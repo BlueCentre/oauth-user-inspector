@@ -675,7 +675,9 @@ const App: React.FC = () => {
         const tokenData = await response.json();
         await handleRefreshSuccess(tokenData);
       } else {
-        throw new Error("No OAuth credentials available for token refresh. This session may have been started with hosted OAuth.");
+        throw new Error(
+          "No OAuth credentials available for token refresh. This session may have been started with hosted OAuth.",
+        );
       }
     } catch (err: any) {
       setError(`Token refresh failed: ${err.message}`);
@@ -728,7 +730,11 @@ const App: React.FC = () => {
       return;
     }
 
-    if (!confirm("Are you sure you want to revoke your access token? This will log you out.")) {
+    if (
+      !confirm(
+        "Are you sure you want to revoke your access token? This will log you out.",
+      )
+    ) {
       return;
     }
 
@@ -781,7 +787,7 @@ const App: React.FC = () => {
         });
 
         const result = await response.json();
-        
+
         if (response.ok && result.success) {
           handleLogout();
           setError(null);
@@ -793,13 +799,66 @@ const App: React.FC = () => {
         // For providers like LinkedIn that don't support revocation, just log out locally
         handleLogout();
         setError(null);
-        alert("Session ended locally. Some providers don't support token revocation.");
+        alert(
+          "Session ended locally. Some providers don't support token revocation.",
+        );
       }
     } catch (err: any) {
       setError(`Token revocation failed: ${err.message}`);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Development-only function to create a sample user with JWT tokens for testing
+  const createSampleTokenDemo = () => {
+    // Sample JWT tokens for demonstration (these are NOT real tokens)
+    const sampleAccessToken = "ghp_1234567890abcdefghijklmnopqrstuvwxyz12"; // GitHub PAT format
+    const sampleIdToken =
+      "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEyMyJ9.eyJpc3MiOiJodHRwczovL2V4YW1wbGUuY29tIiwiYXVkIjoiZXhhbXBsZS1jbGllbnQtaWQiLCJzdWIiOiJ1c2VyMTIzIiwiZW1haWwiOiJqb2huLmRvZUBleGFtcGxlLmNvbSIsImVtYWlsX3ZlcmlmaWVkIjp0cnVlLCJuYW1lIjoiSm9obiBEb2UiLCJwaWN0dXJlIjoiaHR0cHM6Ly9leGFtcGxlLmNvbS9hdmF0YXIuanBnIiwiaWF0IjoxNzI1MzkwNDAwLCJleHAiOjE3MjUzOTQwMDAsIm5iZiI6MTcyNTM5MDQwMCwic2NvcGUiOiJvcGVuaWQgZW1haWwgcHJvZmlsZSJ9.example-signature-not-real";
+    const sampleRefreshToken = "refresh_1234567890abcdefghijklmnopqrstuvwxyz";
+
+    const sampleUser: AppUser = {
+      provider: "google",
+      avatarUrl: "https://lh3.googleusercontent.com/a/default-user",
+      name: "Demo User",
+      email: "demo@example.com",
+      profileUrl: "https://example.com/profile/demo",
+      username: "demo",
+      rawData: {
+        id: "demo123",
+        email: "demo@example.com",
+        verified_email: true,
+        name: "Demo User",
+        given_name: "Demo",
+        family_name: "User",
+        picture: "https://lh3.googleusercontent.com/a/default-user",
+        locale: "en",
+      },
+      accessToken: sampleAccessToken,
+      idToken: sampleIdToken,
+      refreshToken: sampleRefreshToken,
+      scopes: ["openid", "email", "profile"],
+      tokenType: "Bearer",
+      tokenExpiresAt: Date.now() + 3600000, // 1 hour from now
+      jwtPayload: {
+        iss: "https://example.com",
+        aud: "example-client-id",
+        sub: "user123",
+        email: "john.doe@example.com",
+        email_verified: true,
+        name: "John Doe",
+        picture: "https://example.com/avatar.jpg",
+        iat: 1725390400,
+        exp: 1725394000,
+        nbf: 1725390400,
+        scope: "openid email profile",
+      },
+    };
+
+    setUser(sampleUser);
+    setError(null);
+    setIsLoading(false);
   };
 
   const renderContent = () => {
@@ -907,12 +966,23 @@ const App: React.FC = () => {
       <footer className="w-full border-t border-slate-800/60 mt-8">
         <div className="mx-auto max-w-4xl px-4 py-6 text-center text-sm text-slate-600 flex flex-col items-center gap-2">
           <p>Built for demonstration and troubleshooting.</p>
-          <button
-            onClick={() => setShowHelp(true)}
-            className="text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
-          >
-            Help & Shortcuts
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowHelp(true)}
+              className="text-xs px-3 py-1.5 rounded-md border border-slate-600 text-slate-400 hover:text-slate-200 hover:bg-slate-700"
+            >
+              Help & Shortcuts
+            </button>
+            {process.env.NODE_ENV === "development" && (
+              <button
+                onClick={createSampleTokenDemo}
+                className="text-xs px-3 py-1.5 rounded-md border border-emerald-600 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-700/20"
+                title="Demo the enhanced token display with sample JWT tokens"
+              >
+                Demo Token Display
+              </button>
+            )}
+          </div>
         </div>
       </footer>
       <HelpModal open={showHelp} onClose={() => setShowHelp(false)} />
