@@ -124,7 +124,7 @@ const TokenItem: React.FC<{
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Header
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-words">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-x-auto overflow-y-hidden whitespace-pre">
               {JSON.stringify(jwtDetails.header, null, 2)}
             </pre>
           </div>
@@ -133,7 +133,7 @@ const TokenItem: React.FC<{
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Payload
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-words">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-x-auto overflow-y-hidden whitespace-pre">
               {JSON.stringify(jwtDetails.payload, null, 2)}
             </pre>
           </div>
@@ -147,9 +147,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.iss && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Issuer:</span>{" "}
-                  <span className="break-words">
-                    {jwtDetails.payload.iss}
-                  </span>
+                  <span className="break-words">{jwtDetails.payload.iss}</span>
                 </div>
               )}
               {jwtDetails.payload.aud && (
@@ -165,9 +163,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.sub && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Subject:</span>{" "}
-                  <span className="break-words">
-                    {jwtDetails.payload.sub}
-                  </span>
+                  <span className="break-words">{jwtDetails.payload.sub}</span>
                 </div>
               )}
               {jwtDetails.payload.exp && (
@@ -223,9 +219,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.name && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Name:</span>{" "}
-                  <span className="break-words">
-                    {jwtDetails.payload.name}
-                  </span>
+                  <span className="break-words">{jwtDetails.payload.name}</span>
                 </div>
               )}
             </div>
