@@ -68,7 +68,7 @@ const TokenItem: React.FC<{
   const jwtDetails = isJWT(token) ? decodeJWT(token) : null;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2 w-full">
       <div className="flex items-center justify-between">
         <h5 className="text-xs uppercase tracking-wide text-slate-400">
           {title}
@@ -119,12 +119,12 @@ const TokenItem: React.FC<{
 
       {/* JWT Decoded Display */}
       {jwtDetails && decodedVisible && (
-        <div className="space-y-3 bg-slate-900/70 p-3 rounded border border-slate-600">
+        <div className="space-y-3 bg-slate-900/70 p-3 rounded border border-slate-600 w-full overflow-hidden">
           <div>
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Header
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded overflow-x-auto">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-w-full">
               {JSON.stringify(jwtDetails.header, null, 2)}
             </pre>
           </div>
@@ -133,7 +133,7 @@ const TokenItem: React.FC<{
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Payload
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded overflow-x-auto">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded overflow-x-auto whitespace-pre-wrap break-words max-w-full">
               {JSON.stringify(jwtDetails.payload, null, 2)}
             </pre>
           </div>
@@ -229,7 +229,7 @@ const TokenDisplay: React.FC<TokenDisplayProps> = ({
   }
 
   return (
-    <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 space-y-4">
+    <div className="mt-4 bg-slate-900/60 border border-slate-700 rounded-md p-3 space-y-4 w-full overflow-hidden">
       <div className="flex items-center justify-between">
         <h4 className="text-xs uppercase tracking-wide text-slate-400">
           Raw Token Inspection
