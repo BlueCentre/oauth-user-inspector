@@ -9,6 +9,7 @@ import {
 import { getFieldDoc } from "../fieldDocs";
 import JsonTree from "./JsonTree";
 import TokenDisplay from "./TokenDisplay";
+import ApiExplorer from "./ApiExplorer";
 
 interface UserInfoDisplayProps {
   user: AppUser;
@@ -49,9 +50,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   onTokenRevocation,
 }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<"both" | "table" | "json">(() => {
+  const [viewMode, setViewMode] = useState<"both" | "table" | "json" | "api">(() => {
     const stored = localStorage.getItem("view_mode");
-    return stored === "table" || stored === "json" || stored === "both"
+    return stored === "table" || stored === "json" || stored === "both" || stored === "api"
       ? stored
       : "both";
   });
@@ -81,7 +82,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       console.error("Failed to export snapshot", e);
     }
   };
-  const updateViewMode = (mode: "both" | "table" | "json") => {
+  const updateViewMode = (mode: "both" | "table" | "json" | "api") => {
     setViewMode(mode);
     localStorage.setItem("view_mode", mode);
   };
@@ -425,13 +426,13 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
           <span className="text-xs uppercase tracking-wide text-slate-400 self-center">
             View Mode:
           </span>
-          {(["both", "table", "json"] as const).map((m) => (
+          {(["both", "table", "json", "api"] as const).map((m) => (
             <button
               key={m}
               onClick={() => updateViewMode(m)}
               className={`text-xs px-3 py-1 rounded border transition-colors ${viewMode === m ? "bg-slate-600 border-slate-500 text-white" : "bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700"}`}
             >
-              {m === "both" ? "Both" : m === "table" ? "Table" : "JSON"}
+              {m === "both" ? "Both" : m === "table" ? "Table" : m === "json" ? "JSON" : "API Explorer"}
             </button>
           ))}
           {importedSnapshot && (
@@ -460,8 +461,15 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
           )}
         </div>
         <div className={viewMode === "both" ? "grid md:grid-cols-2 gap-0" : ""}>
+          {/* API Explorer Section */}
+          {viewMode === "api" && (
+            <div className="p-6">
+              <ApiExplorer user={user} />
+            </div>
+          )}
+
           {/* Structured Table */}
-          {viewMode !== "json" && (
+          {viewMode !== "json" && viewMode !== "api" && (
             <div
               className={`p-6 ${viewMode === "both" ? "border-b md:border-b-0 md:border-r" : ""} border-slate-700 overflow-x-auto`}
             >
@@ -613,7 +621,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
             </div>
           )}
           {/* Raw JSON */}
-          {viewMode !== "table" && (
+          {viewMode !== "table" && viewMode !== "api" && (
             <div className="p-6">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-xl font-semibold text-slate-200">

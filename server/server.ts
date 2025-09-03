@@ -916,6 +916,101 @@ app.get("/api/health", (req: Request, res: Response) => {
   });
 });
 
+// API Explorer endpoint - proxy API calls to avoid CORS issues
+app.post("/api/explore", async (req: Request, res: Response) => {
+  const reqLogger = req.logger || logger;
+  const endTimer = logTiming(reqLogger, "API Explore");
+
+  try {
+    const { provider, accessToken, endpoint } = req.body;
+
+    if (!provider || !accessToken || !endpoint) {
+      res.status(400).json({ 
+        error: "Missing required fields: provider, accessToken, endpoint" 
+      });
+      return;
+    }
+
+    if (!endpoint.url || !endpoint.method) {
+      res.status(400).json({ 
+        error: "Invalid endpoint: missing url or method" 
+      });
+      return;
+    }
+
+    reqLogger.info("API explore request", {
+      provider,
+      endpointId: endpoint.id,
+      url: endpoint.url,
+      method: endpoint.method,
+    });
+
+    // Handle Auth0 special case - construct full URL with domain
+    let targetUrl = endpoint.url;
+    if (provider === "auth0" && endpoint.url.startsWith("/")) {
+      // Get Auth0 domain from stored metadata
+      const metaRaw = req.body.auth0Domain;
+      if (!metaRaw) {
+        res.status(400).json({ 
+          error: "Auth0 domain required for Auth0 API calls" 
+        });
+        return;
+      }
+      targetUrl = `https://${metaRaw}${endpoint.url}`;
+    }
+
+    // Prepare headers
+    const headers: Record<string, string> = {
+      "Authorization": `Bearer ${accessToken}`,
+      "User-Agent": "OAuth-User-Inspector/1.0",
+    };
+
+    // Add provider-specific headers
+    if (provider === "github") {
+      headers["X-GitHub-Api-Version"] = "2022-11-28";
+      headers["Accept"] = "application/vnd.github+json";
+    }
+
+    // Make the API call
+    const fetchOptions: RequestInit = {
+      method: endpoint.method,
+      headers,
+    };
+
+    const apiResponse = await fetch(targetUrl, fetchOptions);
+    const responseData = await apiResponse.json();
+
+    reqLogger.info("API explore response", {
+      provider,
+      endpointId: endpoint.id,
+      status: apiResponse.status,
+      success: apiResponse.ok,
+    });
+
+    // Return response data and metadata
+    res.json({
+      success: apiResponse.ok,
+      status: apiResponse.status,
+      data: responseData,
+      error: apiResponse.ok ? undefined : responseData.message || responseData.error || "API call failed",
+      headers: Object.fromEntries(apiResponse.headers.entries()),
+    });
+
+    endTimer();
+  } catch (error: any) {
+    endTimer();
+    logError(reqLogger, error, {
+      endpoint: "/api/explore",
+      provider: req.body?.provider,
+      endpointId: req.body?.endpoint?.id,
+    });
+    res.status(500).json({ 
+      success: false,
+      error: error.message || "Failed to make API call" 
+    });
+  }
+});
+
 // --- Static file serving & SPA Fallback ---
 // Use process.cwd() so tests and production builds resolve consistently
 const baseDir = process.cwd();
