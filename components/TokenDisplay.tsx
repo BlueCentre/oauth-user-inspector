@@ -124,7 +124,7 @@ const TokenItem: React.FC<{
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Header
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-all word-break-break-all max-w-0 min-w-0">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-words">
               {JSON.stringify(jwtDetails.header, null, 2)}
             </pre>
           </div>
@@ -133,7 +133,7 @@ const TokenItem: React.FC<{
             <h6 className="text-[10px] uppercase tracking-wide text-slate-400 mb-2">
               JWT Payload
             </h6>
-            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-all word-break-break-all max-w-0 min-w-0">
+            <pre className="text-[10px] text-slate-200 bg-slate-800 p-2 rounded w-full overflow-hidden whitespace-pre-wrap break-words">
               {JSON.stringify(jwtDetails.payload, null, 2)}
             </pre>
           </div>
@@ -147,7 +147,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.iss && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Issuer:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {jwtDetails.payload.iss}
                   </span>
                 </div>
@@ -155,7 +155,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.aud && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Audience:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {Array.isArray(jwtDetails.payload.aud)
                       ? jwtDetails.payload.aud.join(", ")
                       : jwtDetails.payload.aud}
@@ -165,7 +165,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.sub && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Subject:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {jwtDetails.payload.sub}
                   </span>
                 </div>
@@ -173,7 +173,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.exp && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Expires:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {new Date(jwtDetails.payload.exp * 1000).toLocaleString()}
                   </span>
                   <span className="text-slate-400 ml-1">
@@ -191,7 +191,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.iat && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Issued At:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {new Date(jwtDetails.payload.iat * 1000).toLocaleString()}
                   </span>
                 </div>
@@ -199,7 +199,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.nbf && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Not Before:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {new Date(jwtDetails.payload.nbf * 1000).toLocaleString()}
                   </span>
                 </div>
@@ -207,7 +207,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.scope && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Scope:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {jwtDetails.payload.scope}
                   </span>
                 </div>
@@ -215,7 +215,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.email && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Email:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {jwtDetails.payload.email}
                   </span>
                 </div>
@@ -223,7 +223,7 @@ const TokenItem: React.FC<{
               {jwtDetails.payload.name && (
                 <div className="w-full overflow-hidden">
                   <span className="text-slate-500">Name:</span>{" "}
-                  <span className="break-all word-break-break-all">
+                  <span className="break-words">
                     {jwtDetails.payload.name}
                   </span>
                 </div>
