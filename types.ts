@@ -185,3 +185,27 @@ export interface TokenRevocationResponse {
   success: boolean;
   message?: string;
 }
+
+// API Explorer interfaces
+export interface ApiEndpoint {
+  id: string;
+  name: string;
+  description: string;
+  url: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  requiredScopes?: string[];
+}
+
+export interface ApiExploreRequest {
+  provider: AuthProvider;
+  accessToken: string;
+  endpoint: ApiEndpoint;
+}
+
+export interface ApiExploreResponse {
+  success: boolean;
+  data?: any;
+  error?: string;
+  status?: number;
+  headers?: Record<string, string>;
+}
