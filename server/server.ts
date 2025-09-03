@@ -347,6 +347,395 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
   }
 });
 
+// OAuth Token Refresh endpoint
+app.post("/api/oauth/refresh", async (req: Request, res: Response) => {
+  const reqLogger = req.logger || logger;
+  const endTimer = logTiming(reqLogger, "oauth-token-refresh");
+
+  try {
+    const { provider, refreshToken, isHosted } = req.body;
+    let { clientId, clientSecret, auth0Domain } = req.body;
+
+    reqLogger.info("OAuth token refresh initiated", {
+      provider,
+      isHosted,
+      hasRefreshToken: !!refreshToken,
+    });
+
+    if (!refreshToken || !provider) {
+      reqLogger.warn("OAuth token refresh failed - missing required parameters");
+      return res.status(400).json({
+        error: "Missing required parameters: refreshToken, provider.",
+      });
+    }
+
+    if (
+      provider !== "github" &&
+      provider !== "google" &&
+      provider !== "gitlab" &&
+      provider !== "auth0" &&
+      provider !== "linkedin"
+    ) {
+      reqLogger.warn("OAuth token refresh failed - unsupported provider", {
+        provider,
+      });
+      return res.status(400).json({ error: "Unsupported provider." });
+    }
+
+    // If hosted, retrieve credentials from secret manager
+    if (isHosted) {
+      const hostedCreds = await getHostedCredentials(provider);
+      clientId = hostedCreds.clientId;
+      clientSecret = hostedCreds.clientSecret;
+      if (provider === "auth0") {
+        try {
+          auth0Domain = await getSecret("AUTH0_APP_OAUTH_DOMAIN");
+        } catch (e) {
+          // leave undefined; the provider-specific check below will handle error response
+        }
+      }
+    } else if (!clientId || !clientSecret) {
+      reqLogger.warn(
+        "OAuth token refresh failed - missing client credentials for non-hosted flow",
+      );
+      return res.status(400).json({
+        error:
+          "Missing required parameters for non-hosted auth: clientId, clientSecret.",
+      });
+    }
+
+    let refreshUrl: string;
+    const fetchOptions: RequestInit = {};
+
+    if (provider === "github") {
+      // Note: GitHub doesn't typically provide refresh tokens for OAuth apps
+      // Only GitHub Apps can use refresh tokens
+      reqLogger.warn("GitHub OAuth Apps do not support refresh tokens");
+      return res.status(400).json({
+        error: "GitHub OAuth Apps do not support refresh tokens. Only GitHub Apps support refresh tokens.",
+      });
+    } else if (provider === "google") {
+      refreshUrl = "https://oauth2.googleapis.com/token";
+      fetchOptions.method = "POST";
+      fetchOptions.headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      fetchOptions.body = JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      });
+    } else if (provider === "gitlab") {
+      refreshUrl = "https://gitlab.com/oauth/token";
+      fetchOptions.method = "POST";
+      fetchOptions.headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      fetchOptions.body = JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      });
+    } else if (provider === "auth0") {
+      if (!auth0Domain) {
+        return res.status(400).json({ error: "Auth0 domain is required." });
+      }
+      refreshUrl = `https://${auth0Domain}/oauth/token`;
+      fetchOptions.method = "POST";
+      fetchOptions.headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      fetchOptions.body = JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        refresh_token: refreshToken,
+        grant_type: "refresh_token",
+      });
+    } else if (provider === "linkedin") {
+      refreshUrl = "https://www.linkedin.com/oauth/v2/accessToken";
+      fetchOptions.method = "POST";
+      fetchOptions.headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+      };
+      const params = new URLSearchParams();
+      params.append("grant_type", "refresh_token");
+      params.append("refresh_token", refreshToken);
+      params.append("client_id", clientId);
+      params.append("client_secret", clientSecret);
+      fetchOptions.body = params;
+    } else {
+      return res.status(400).json({ error: "Unsupported provider." });
+    }
+
+    reqLogger.info("Making OAuth provider refresh request", {
+      provider,
+      refreshUrl,
+      method: fetchOptions.method,
+    });
+
+    const refreshResponse = await fetch(refreshUrl, fetchOptions);
+    const responseText = await refreshResponse.text();
+
+    reqLogger.info("OAuth provider refresh response received", {
+      provider,
+      statusCode: refreshResponse.status,
+    });
+
+    if (!refreshResponse.ok) {
+      reqLogger.error("OAuth provider refresh error response", {
+        provider,
+        statusCode: refreshResponse.status,
+        responseText: responseText.substring(0, 500),
+      });
+
+      try {
+        const errorData = JSON.parse(responseText);
+        return res.status(refreshResponse.status).json({
+          error:
+            errorData.error_description ||
+            errorData.error ||
+            "Failed to refresh token.",
+        });
+      } catch (e) {
+        const params = new URLSearchParams(responseText);
+        const error =
+          params.get("error_description") ||
+          params.get("error") ||
+          responseText;
+        return res.status(refreshResponse.status).json({ error });
+      }
+    }
+
+    const tokenData = JSON.parse(responseText);
+
+    reqLogger.info("OAuth token refresh successful", {
+      provider,
+      hasAccessToken: !!tokenData.access_token,
+      hasRefreshToken: !!tokenData.refresh_token,
+    });
+
+    endTimer();
+    res.json(tokenData);
+  } catch (error: any) {
+    logError(reqLogger, error, {
+      endpoint: "/api/oauth/refresh",
+      provider: req.body?.provider,
+    });
+    endTimer();
+    res
+      .status(500)
+      .json({ error: "Internal server error.", message: error.message });
+  }
+});
+
+// OAuth Token Revocation endpoint
+app.post("/api/oauth/revoke", async (req: Request, res: Response) => {
+  const reqLogger = req.logger || logger;
+  const endTimer = logTiming(reqLogger, "oauth-token-revocation");
+
+  try {
+    const { provider, token, tokenTypeHint, isHosted } = req.body;
+    let { clientId, clientSecret, auth0Domain } = req.body;
+
+    reqLogger.info("OAuth token revocation initiated", {
+      provider,
+      isHosted,
+      hasToken: !!token,
+      tokenTypeHint,
+    });
+
+    if (!token || !provider) {
+      reqLogger.warn("OAuth token revocation failed - missing required parameters");
+      return res.status(400).json({
+        error: "Missing required parameters: token, provider.",
+      });
+    }
+
+    if (
+      provider !== "github" &&
+      provider !== "google" &&
+      provider !== "gitlab" &&
+      provider !== "auth0" &&
+      provider !== "linkedin"
+    ) {
+      reqLogger.warn("OAuth token revocation failed - unsupported provider", {
+        provider,
+      });
+      return res.status(400).json({ error: "Unsupported provider." });
+    }
+
+    // If hosted, retrieve credentials from secret manager
+    if (isHosted) {
+      const hostedCreds = await getHostedCredentials(provider);
+      clientId = hostedCreds.clientId;
+      clientSecret = hostedCreds.clientSecret;
+      if (provider === "auth0") {
+        try {
+          auth0Domain = await getSecret("AUTH0_APP_OAUTH_DOMAIN");
+        } catch (e) {
+          // leave undefined; the provider-specific check below will handle error response
+        }
+      }
+    } else if (!clientId || !clientSecret) {
+      reqLogger.warn(
+        "OAuth token revocation failed - missing client credentials for non-hosted flow",
+      );
+      return res.status(400).json({
+        error:
+          "Missing required parameters for non-hosted auth: clientId, clientSecret.",
+      });
+    }
+
+    let revokeUrl: string;
+    const fetchOptions: RequestInit = {};
+
+    if (provider === "github") {
+      // GitHub uses Basic Auth for revocation
+      revokeUrl = `https://api.github.com/applications/${clientId}/token`;
+      fetchOptions.method = "DELETE";
+      fetchOptions.headers = {
+        Accept: "application/vnd.github.v3+json",
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        "Content-Type": "application/json",
+      };
+      fetchOptions.body = JSON.stringify({
+        access_token: token,
+      });
+    } else if (provider === "google") {
+      revokeUrl = "https://oauth2.googleapis.com/revoke";
+      fetchOptions.method = "POST";
+      fetchOptions.headers = {
+        "Content-Type": "application/x-www-form-urlencoded",
+      };
+      const params = new URLSearchParams();
+      params.append("token", token);
+      if (tokenTypeHint) {
+        params.append("token_type_hint", tokenTypeHint);
+      }
+      fetchOptions.body = params;
+    } else if (provider === "gitlab") {
+      revokeUrl = "https://gitlab.com/oauth/revoke";
+      fetchOptions.method = "POST";
+      fetchOptions.headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      fetchOptions.body = JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        token: token,
+      });
+    } else if (provider === "auth0") {
+      if (!auth0Domain) {
+        return res.status(400).json({ error: "Auth0 domain is required." });
+      }
+      revokeUrl = `https://${auth0Domain}/oauth/revoke`;
+      fetchOptions.method = "POST";
+      fetchOptions.headers = {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      };
+      fetchOptions.body = JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        token: token,
+        token_type_hint: tokenTypeHint || "access_token",
+      });
+    } else if (provider === "linkedin") {
+      // LinkedIn doesn't have a standard revoke endpoint, but we can simulate it
+      // by making an API call with the token to verify it's still valid
+      reqLogger.info("LinkedIn doesn't provide a token revocation endpoint");
+      return res.json({
+        success: true,
+        message: "LinkedIn doesn't provide a token revocation endpoint. The token will expire naturally according to LinkedIn's token lifetime policy.",
+      });
+    } else {
+      return res.status(400).json({ error: "Unsupported provider." });
+    }
+
+    reqLogger.info("Making OAuth provider revocation request", {
+      provider,
+      revokeUrl,
+      method: fetchOptions.method,
+    });
+
+    const revokeResponse = await fetch(revokeUrl, fetchOptions);
+    
+    // Different providers handle revocation responses differently
+    let success = false;
+    let responseData: any = {};
+
+    if (provider === "github") {
+      // GitHub returns 204 No Content on successful revocation
+      success = revokeResponse.status === 204;
+    } else if (provider === "google") {
+      // Google returns 200 on successful revocation
+      success = revokeResponse.status === 200;
+    } else {
+      // For other providers, check if status is 2xx
+      success = revokeResponse.status >= 200 && revokeResponse.status < 300;
+    }
+
+    if (revokeResponse.headers.get('content-type')?.includes('application/json')) {
+      try {
+        const responseText = await revokeResponse.text();
+        if (responseText.trim()) {
+          responseData = JSON.parse(responseText);
+        }
+      } catch (e) {
+        // Ignore JSON parsing errors for revocation responses
+      }
+    }
+
+    reqLogger.info("OAuth provider revocation response received", {
+      provider,
+      statusCode: revokeResponse.status,
+      success,
+    });
+
+    if (!success) {
+      reqLogger.error("OAuth provider revocation error response", {
+        provider,
+        statusCode: revokeResponse.status,
+      });
+
+      return res.status(revokeResponse.status).json({
+        success: false,
+        error: responseData.error || responseData.error_description || "Failed to revoke token.",
+      });
+    }
+
+    reqLogger.info("OAuth token revocation successful", {
+      provider,
+    });
+
+    endTimer();
+    res.json({
+      success: true,
+      message: "Token revoked successfully.",
+    });
+  } catch (error: any) {
+    logError(reqLogger, error, {
+      endpoint: "/api/oauth/revoke",
+      provider: req.body?.provider,
+    });
+    endTimer();
+    res
+      .status(500)
+      .json({ 
+        success: false,
+        error: "Internal server error.", 
+        message: error.message 
+      });
+  }
+});
+
 // Hosted OAuth - Get authorization URL using stored credentials
 app.post("/api/oauth-hosted/init", async (req: Request, res: Response) => {
   const reqLogger = req.logger || logger;

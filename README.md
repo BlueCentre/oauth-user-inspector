@@ -8,6 +8,36 @@ This is a full-stack web application designed to inspect OAuth user information 
 
 The frontend is a React application built with Vite and styled with Tailwind CSS. It allows users to authenticate using OAuth or a Personal Access Token (PAT). The backend is an Express server written in TypeScript that handles the server-side part of the OAuth flow.
 
+## Features
+
+### OAuth Token Lifecycle Management
+
+This application demonstrates OAuth token lifecycle best practices including:
+
+- **🔄 Token Refresh**: Automatically refresh access tokens using refresh tokens when available
+- **🚫 Token Revocation**: Securely revoke access tokens for immediate invalidation
+- **📊 Token Analysis**: Display token metadata including scopes, expiration, and type
+- **🔐 Security Education**: Learn about proper token handling and security practices
+
+#### Provider Support
+
+| Provider | Token Refresh | Token Revocation | Notes |
+|----------|---------------|------------------|-------|
+| Google | ✅ | ✅ | Full OAuth 2.0 support |
+| GitLab | ✅ | ✅ | Enterprise-ready features |
+| Auth0 | ✅ | ✅ | Identity platform support |
+| LinkedIn | ✅ | ⚠️ | Limited revocation API |
+| GitHub | ❌ | ✅ | OAuth Apps don't support refresh tokens* |
+
+*Note: GitHub Apps (not OAuth Apps) do support refresh tokens, but this demo uses OAuth Apps for simplicity.
+
+### Educational Value
+
+- **Developer Learning**: Understand OAuth 2.0 token flows and security practices
+- **API Integration**: See real-world examples of token refresh and revocation
+- **Security Best Practices**: Learn about token lifecycle management
+- **Provider Differences**: Compare how different OAuth providers implement standards
+
 ## Repository Structure
 
 ```

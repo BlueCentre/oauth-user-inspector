@@ -24,6 +24,20 @@ jest.mock("@google-cloud/secret-manager", () => ({
           },
         ]);
       }
+      if (name.includes("GOOGLE_APP_OAUTH_CLIENT_ID")) {
+        return Promise.resolve([
+          {
+            payload: { data: "test-google-client-id" },
+          },
+        ]);
+      }
+      if (name.includes("GOOGLE_APP_OAUTH_CLIENT_SECRET")) {
+        return Promise.resolve([
+          {
+            payload: { data: "test-google-client-secret" },
+          },
+        ]);
+      }
       if (name.includes("GITLAB_APP_OAUTH_CLIENT_ID")) {
         return Promise.resolve([
           {
@@ -49,6 +63,13 @@ jest.mock("@google-cloud/secret-manager", () => ({
         return Promise.resolve([
           {
             payload: { data: "test-auth0-client-secret" },
+          },
+        ]);
+      }
+      if (name.includes("AUTH0_APP_OAUTH_DOMAIN")) {
+        return Promise.resolve([
+          {
+            payload: { data: "oauth-user-inspector.us.auth0.com" },
           },
         ]);
       }
@@ -121,17 +142,86 @@ jest.mock("winston", () => {
 import app from "../server.js";
 
 const restHandlers = [
+  // OAuth token exchange handlers
   http.post("https://github.com/login/oauth/access_token", () => {
     return HttpResponse.json({ access_token: "test_access_token" });
   }),
-  http.post("https://gitlab.com/oauth/token", () => {
-    return HttpResponse.json({ access_token: "test_gitlab_access_token" });
+  http.post("https://oauth2.googleapis.com/token", async ({ request }) => {
+    const body = await request.text();
+    if (body.includes("grant_type=refresh_token")) {
+      return HttpResponse.json({ 
+        access_token: "new_google_access_token",
+        refresh_token: "new_google_refresh_token",
+        expires_in: 3600,
+        token_type: "Bearer"
+      });
+    } else {
+      return HttpResponse.json({ 
+        access_token: "new_google_access_token",
+        refresh_token: "new_google_refresh_token",
+        expires_in: 3600,
+        token_type: "Bearer"
+      });
+    }
   }),
-  http.post("https://oauth-user-inspector.us.auth0.com/oauth/token", () => {
-    return HttpResponse.json({ access_token: "test_auth0_access_token" });
+  http.post("https://gitlab.com/oauth/token", async ({ request }) => {
+    const body = await request.text();
+    const isRefresh = body.includes('"grant_type":"refresh_token"') || body.includes('grant_type=refresh_token');
+    if (isRefresh) {
+      return HttpResponse.json({ 
+        access_token: "new_gitlab_access_token",
+        refresh_token: "new_gitlab_refresh_token",
+        expires_in: 7200
+      });
+    } else {
+      return HttpResponse.json({ 
+        access_token: "test_gitlab_access_token"
+      });
+    }
   }),
-  http.post("https://www.linkedin.com/oauth/v2/accessToken", () => {
-    return HttpResponse.json({ access_token: "test_linkedin_access_token" });
+  http.post("https://oauth-user-inspector.us.auth0.com/oauth/token", async ({ request }) => {
+    const body = await request.text();
+    const isRefresh = body.includes('"grant_type":"refresh_token"') || body.includes('grant_type=refresh_token');
+    if (isRefresh) {
+      return HttpResponse.json({ 
+        access_token: "new_auth0_access_token",
+        refresh_token: "new_auth0_refresh_token",
+        expires_in: 86400
+      });
+    } else {
+      return HttpResponse.json({ 
+        access_token: "test_auth0_access_token"
+      });
+    }
+  }),
+  http.post("https://www.linkedin.com/oauth/v2/accessToken", async ({ request }) => {
+    const body = await request.text();
+    const isRefresh = body.includes('grant_type=refresh_token');
+    if (isRefresh) {
+      return HttpResponse.json({ 
+        access_token: "new_linkedin_access_token",
+        refresh_token: "new_linkedin_refresh_token",
+        expires_in: 5184000
+      });
+    } else {
+      return HttpResponse.json({ 
+        access_token: "test_linkedin_access_token"
+      });
+    }
+  }),
+  
+  // OAuth revocation handlers
+  http.post("https://oauth2.googleapis.com/revoke", () => {
+    return new HttpResponse(null, { status: 200 });
+  }),
+  http.delete("https://api.github.com/applications/:clientId/token", () => {
+    return new HttpResponse(null, { status: 204 });
+  }),
+  http.post("https://gitlab.com/oauth/revoke", () => {
+    return HttpResponse.json({ success: true });
+  }),
+  http.post("https://oauth-user-inspector.us.auth0.com/oauth/revoke", () => {
+    return HttpResponse.json({ success: true });
   }),
 ];
 
@@ -190,6 +280,27 @@ describe("/api/oauth/token", () => {
     expect(response.body).toHaveProperty(
       "access_token",
       "test_gitlab_access_token",
+    );
+  });
+
+  it("should return an access token for Google", async () => {
+    const response = await request(app).post("/api/oauth/token").send({
+      code: "valid_code",
+      provider: "google",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      redirectUri: "http://localhost:3000",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty(
+      "access_token",
+      "new_google_access_token",
+    );
+    expect(response.body).toHaveProperty(
+      "refresh_token",
+      "new_google_refresh_token",
     );
   });
 
@@ -302,5 +413,193 @@ describe("/api/health", () => {
     expect(response.status).toBe(200);
     expect(response.body).toHaveProperty("status", "ok");
     expect(typeof response.body.uptime).toBe("number");
+  });
+});
+
+describe("/api/oauth/refresh", () => {
+  it("should refresh a Google token successfully", async () => {
+    const response = await request(app).post("/api/oauth/refresh").send({
+      provider: "google",
+      refreshToken: "test_refresh_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("access_token", "new_google_access_token");
+    expect(response.body).toHaveProperty("refresh_token", "new_google_refresh_token");
+  });
+
+  it("should refresh a GitLab token successfully", async () => {
+    const response = await request(app).post("/api/oauth/refresh").send({
+      provider: "gitlab",
+      refreshToken: "test_refresh_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("access_token", "new_gitlab_access_token");
+  });
+
+  it("should refresh an Auth0 token successfully", async () => {
+    const response = await request(app).post("/api/oauth/refresh").send({
+      provider: "auth0",
+      refreshToken: "test_refresh_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      auth0Domain: "oauth-user-inspector.us.auth0.com",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("access_token", "new_auth0_access_token");
+  });
+
+  it("should return 400 for GitHub (no refresh token support)", async () => {
+    const response = await request(app).post("/api/oauth/refresh").send({
+      provider: "github",
+      refreshToken: "test_refresh_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error");
+    expect(response.body.error).toContain("GitHub OAuth Apps do not support refresh tokens");
+  });
+
+  it("should return 400 for missing refresh token", async () => {
+    const response = await request(app).post("/api/oauth/refresh").send({
+      provider: "google",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error", "Missing required parameters: refreshToken, provider.");
+  });
+
+  it("should return 400 for unsupported provider", async () => {
+    const response = await request(app).post("/api/oauth/refresh").send({
+      provider: "unsupported",
+      refreshToken: "test_refresh_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error", "Unsupported provider.");
+  });
+
+  it("should handle hosted refresh for Google", async () => {
+    const response = await request(app).post("/api/oauth/refresh").send({
+      provider: "google",
+      refreshToken: "test_refresh_token",
+      isHosted: true,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("access_token", "new_google_access_token");
+  });
+});
+
+describe("/api/oauth/revoke", () => {
+  it("should revoke a Google token successfully", async () => {
+    const response = await request(app).post("/api/oauth/revoke").send({
+      provider: "google",
+      token: "test_access_token",
+      tokenTypeHint: "access_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("success", true);
+    expect(response.body).toHaveProperty("message", "Token revoked successfully.");
+  });
+
+  it("should revoke a GitHub token successfully", async () => {
+    const response = await request(app).post("/api/oauth/revoke").send({
+      provider: "github",
+      token: "test_access_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("success", true);
+    expect(response.body).toHaveProperty("message", "Token revoked successfully.");
+  });
+
+  it("should revoke a GitLab token successfully", async () => {
+    const response = await request(app).post("/api/oauth/revoke").send({
+      provider: "gitlab",
+      token: "test_access_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("success", true);
+    expect(response.body).toHaveProperty("message", "Token revoked successfully.");
+  });
+
+  it("should handle LinkedIn token revocation gracefully", async () => {
+    const response = await request(app).post("/api/oauth/revoke").send({
+      provider: "linkedin",
+      token: "test_access_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("success", true);
+    expect(response.body.message).toContain("LinkedIn doesn't provide a token revocation endpoint");
+  });
+
+  it("should return 400 for missing token", async () => {
+    const response = await request(app).post("/api/oauth/revoke").send({
+      provider: "google",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error", "Missing required parameters: token, provider.");
+  });
+
+  it("should return 400 for unsupported provider", async () => {
+    const response = await request(app).post("/api/oauth/revoke").send({
+      provider: "unsupported",
+      token: "test_access_token",
+      clientId: "test-client-id",
+      clientSecret: "test-client-secret",
+      isHosted: false,
+    });
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty("error", "Unsupported provider.");
+  });
+
+  it("should handle hosted revocation for GitHub", async () => {
+    const response = await request(app).post("/api/oauth/revoke").send({
+      provider: "github",
+      token: "test_access_token",
+      isHosted: true,
+    });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty("success", true);
   });
 });
