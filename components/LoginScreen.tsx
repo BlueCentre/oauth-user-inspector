@@ -237,13 +237,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 <ScopeSelector
                   provider="github"
                   onScopeChange={setGithubScopes}
-                  initialScopes={githubScopes}
                 />
               </div>
               <div className="mt-6">
                 <button
                   onClick={() =>
-                    onOAuthLogin("github", githubClientId, githubClientSecret, undefined, githubScopes)
+                    onOAuthLogin(
+                      "github",
+                      githubClientId,
+                      githubClientSecret,
+                      undefined,
+                      githubScopes,
+                    )
                   }
                   disabled={!githubClientId || !githubClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-slate-600 hover:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-slate-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
@@ -472,13 +477,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 <ScopeSelector
                   provider="google"
                   onScopeChange={setGoogleScopes}
-                  initialScopes={googleScopes}
                 />
               </div>
               <div className="mt-6">
                 <button
                   onClick={() =>
-                    onOAuthLogin("google", googleClientId, googleClientSecret, undefined, googleScopes)
+                    onOAuthLogin(
+                      "google",
+                      googleClientId,
+                      googleClientSecret,
+                      undefined,
+                      googleScopes,
+                    )
                   }
                   disabled={!googleClientId || !googleClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
@@ -672,13 +682,18 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 <ScopeSelector
                   provider="gitlab"
                   onScopeChange={setGitlabScopes}
-                  initialScopes={gitlabScopes}
                 />
               </div>
               <div className="mt-6">
                 <button
                   onClick={() =>
-                    onOAuthLogin("gitlab", gitlabClientId, gitlabClientSecret, undefined, gitlabScopes)
+                    onOAuthLogin(
+                      "gitlab",
+                      gitlabClientId,
+                      gitlabClientSecret,
+                      undefined,
+                      gitlabScopes,
+                    )
                   }
                   disabled={!gitlabClientId || !gitlabClientSecret || isLoading}
                   className="w-full inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-slate-600/50 disabled:cursor-not-allowed transition-all"
@@ -832,7 +847,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 <ScopeSelector
                   provider="auth0"
                   onScopeChange={setAuth0Scopes}
-                  initialScopes={auth0Scopes}
                 />
               </div>
               <div className="mt-6">
@@ -987,7 +1001,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
                 <ScopeSelector
                   provider="linkedin"
                   onScopeChange={setLinkedinScopes}
-                  initialScopes={linkedinScopes}
                 />
               </div>
               <div className="mt-6">

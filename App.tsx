@@ -518,7 +518,9 @@ const App: React.FC = () => {
       const scope = scopes || "read:user,user:email";
       authUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=${scope}&state=github`;
     } else if (provider === "google") {
-      const scope = scopes || "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
+      const scope =
+        scopes ||
+        "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email";
       authUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=code&scope=${scope}&state=google`;
     } else if (provider === "gitlab") {
       const scope = scopes || "read_user";
@@ -557,7 +559,10 @@ const App: React.FC = () => {
     await fetchUser(token, "google");
   };
 
-  const handleHostedOAuthLogin = async (provider: AuthProvider, scopes?: string) => {
+  const handleHostedOAuthLogin = async (
+    provider: AuthProvider,
+    scopes?: string,
+  ) => {
     setError(null);
     setIsLoading(true);
 

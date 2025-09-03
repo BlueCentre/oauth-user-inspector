@@ -11,7 +11,7 @@ interface ScopeSelectorProps {
 const DEFAULT_SCOPES: Record<AuthProvider, string[]> = {
   github: [
     "read:user",
-    "user:email", 
+    "user:email",
     "public_repo",
     "repo",
     "admin:repo_hook",
@@ -22,7 +22,7 @@ const DEFAULT_SCOPES: Record<AuthProvider, string[]> = {
     "write:repo_hook",
     "admin:org",
     "admin:public_key",
-    "admin:org_hook"
+    "admin:org_hook",
   ],
   google: [
     "https://www.googleapis.com/auth/userinfo.profile",
@@ -31,23 +31,23 @@ const DEFAULT_SCOPES: Record<AuthProvider, string[]> = {
     "https://www.googleapis.com/auth/calendar",
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/contacts.readonly",
-    "https://www.googleapis.com/auth/youtube.readonly"
+    "https://www.googleapis.com/auth/youtube.readonly",
   ],
   gitlab: [
     "read_user",
-    "read_repository", 
+    "read_repository",
     "write_repository",
     "api",
     "read_registry",
-    "write_registry"
+    "write_registry",
   ],
   auth0: [
     "openid",
-    "profile", 
+    "profile",
     "email",
     "offline_access",
     "read:current_user",
-    "update:current_user_metadata"
+    "update:current_user_metadata",
   ],
   linkedin: [
     "r_liteprofile",
@@ -56,93 +56,107 @@ const DEFAULT_SCOPES: Record<AuthProvider, string[]> = {
     "r_ads",
     "r_ads_reporting",
     "rw_ads",
-    "r_organization_social"
-  ]
+    "r_organization_social",
+  ],
 };
 
 // Default scope combinations that work out of the box
 const PROVIDER_DEFAULTS: Record<AuthProvider, string> = {
   github: "read:user,user:email",
-  google: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email", 
+  google:
+    "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
   gitlab: "read_user",
   auth0: "openid profile email",
-  linkedin: "r_liteprofile r_emailaddress"
+  linkedin: "r_liteprofile r_emailaddress",
 };
 
 const ScopeSelector: React.FC<ScopeSelectorProps> = ({
   provider,
   onScopeChange,
-  initialScopes
+  initialScopes,
 }) => {
   const [selectedScopes, setSelectedScopes] = useState<string[]>([]);
   const [customInput, setCustomInput] = useState("");
   const [mode, setMode] = useState<"preset" | "custom">("preset");
 
-  // Initialize with default or provided scopes
+  // Initialize with default or provided scopes - only when provider changes or initially
   useEffect(() => {
     const scopes = initialScopes || PROVIDER_DEFAULTS[provider];
-    const scopeArray = provider === "google" 
-      ? scopes.split(" ")
-      : scopes.split(/[, ]+/).filter(Boolean);
-    
+    const scopeArray =
+      provider === "google"
+        ? scopes.split(" ")
+        : scopes.split(/[, ]+/).filter(Boolean);
+
     setSelectedScopes(scopeArray);
     setCustomInput(scopes);
-    
+
     // Determine if current scopes match any preset combination
     const isPreset = scopes === PROVIDER_DEFAULTS[provider];
     setMode(isPreset ? "preset" : "custom");
-  }, [provider, initialScopes]);
 
-  // Update parent when scopes change
+    // Only call onScopeChange during initialization to avoid infinite loops
+    onScopeChange(scopes);
+  }, [provider]); // Remove initialScopes dependency to prevent loops
+
+  // Update parent when scopes change (but not during initialization)
   useEffect(() => {
-    const scopeString = mode === "custom" 
-      ? customInput
-      : (provider === "google" ? selectedScopes.join(" ") : selectedScopes.join(","));
-    onScopeChange(scopeString);
-  }, [selectedScopes, customInput, mode, provider]);
+    const scopeString =
+      mode === "custom"
+        ? customInput
+        : provider === "google"
+          ? selectedScopes.join(" ")
+          : selectedScopes.join(",");
+
+    // Only update if we have scopes to avoid calling with empty string on mount
+    if (selectedScopes.length > 0 || customInput.trim()) {
+      onScopeChange(scopeString);
+    }
+  }, [selectedScopes, customInput, mode, provider, onScopeChange]);
 
   const handleScopeToggle = (scope: string) => {
-    setSelectedScopes(prev => 
-      prev.includes(scope)
-        ? prev.filter(s => s !== scope)
-        : [...prev, scope]
+    setSelectedScopes((prev) =>
+      prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope],
     );
   };
 
   const handleModeChange = (newMode: "preset" | "custom") => {
     setMode(newMode);
-    
+
     if (newMode === "preset") {
       // Reset to current selected scopes
-      const scopeString = provider === "google" 
-        ? selectedScopes.join(" ")
-        : selectedScopes.join(",");
+      const scopeString =
+        provider === "google"
+          ? selectedScopes.join(" ")
+          : selectedScopes.join(",");
       setCustomInput(scopeString);
     } else {
       // Switch to custom mode with current scope string
-      const currentString = provider === "google" 
-        ? selectedScopes.join(" ")
-        : selectedScopes.join(",");
+      const currentString =
+        provider === "google"
+          ? selectedScopes.join(" ")
+          : selectedScopes.join(",");
       setCustomInput(currentString);
     }
   };
 
   const handleCustomInputChange = (value: string) => {
     setCustomInput(value);
-    
+
     // Update selectedScopes to reflect custom input for consistency
-    const scopeArray = provider === "google"
-      ? value.split(" ").filter(Boolean)
-      : value.split(/[, ]+/).filter(Boolean);
+    const scopeArray =
+      provider === "google"
+        ? value.split(" ").filter(Boolean)
+        : value.split(/[, ]+/).filter(Boolean);
     setSelectedScopes(scopeArray);
   };
 
   const resetToDefault = () => {
     const defaultScopes = PROVIDER_DEFAULTS[provider];
-    const scopeArray = provider === "google"
-      ? defaultScopes.split(" ")
-      : defaultScopes.split(/[, ]+/).filter(Boolean);
-    
+    const scopeArray =
+      provider === "google"
+        ? defaultScopes.split(" ")
+        : defaultScopes.split(/[, ]+/).filter(Boolean);
+
     setSelectedScopes(scopeArray);
     setCustomInput(defaultScopes);
     setMode("preset");
@@ -196,7 +210,9 @@ const ScopeSelector: React.FC<ScopeSelectorProps> = ({
                 />
                 <span
                   className={`font-mono text-xs ${
-                    selectedScopes.includes(scope) ? "text-slate-200" : "text-slate-400"
+                    selectedScopes.includes(scope)
+                      ? "text-slate-200"
+                      : "text-slate-400"
                   }`}
                 >
                   {scope}
@@ -224,16 +240,16 @@ const ScopeSelector: React.FC<ScopeSelectorProps> = ({
             rows={3}
           />
           <p className="mt-1 text-xs text-slate-400">
-            {provider === "google" 
+            {provider === "google"
               ? "Separate Google scopes with spaces"
-              : "Separate scopes with commas or spaces"
-            }
+              : "Separate scopes with commas or spaces"}
           </p>
         </div>
       )}
 
       <div className="text-xs text-slate-500">
-        Selected: {selectedScopes.length} scope{selectedScopes.length !== 1 ? "s" : ""}
+        Selected: {selectedScopes.length} scope
+        {selectedScopes.length !== 1 ? "s" : ""}
       </div>
     </div>
   );
