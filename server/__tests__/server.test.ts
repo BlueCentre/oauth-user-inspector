@@ -377,6 +377,62 @@ describe("/api/oauth/token", () => {
     expect(response.body).toHaveProperty("error");
   });
 
+  it("should return enhanced OAuth error for invalid_scope", async () => {
+    // Mock a GitHub OAuth error response
+    mswServer.use(
+      http.post("https://github.com/login/oauth/access_token", () => {
+        return HttpResponse.json(
+          { error: "invalid_scope", error_description: "The requested scope is invalid" },
+          { status: 400 }
+        );
+      })
+    );
+
+    const response = await request(app)
+      .post("/api/oauth/token")
+      .send({
+        code: "test_code",
+        provider: "github",
+        redirectUri: "http://localhost/",
+        clientId: "test-client-id",
+        clientSecret: "test-client-secret",
+      });
+
+    expect(response.status).toBe(400);
+    expect(response.body.errorCode).toBe("invalid_scope");
+    expect(response.body.guide).toBeDefined();
+    expect(response.body.guide.title).toBe("Invalid Scope");
+    expect(response.body.guide.troubleshooting).toContain("Check that all requested scopes are supported by the OAuth provider");
+  });
+
+  it("should return enhanced OAuth error for unauthorized_client", async () => {
+    // Mock a Google OAuth error response
+    mswServer.use(
+      http.post("https://oauth2.googleapis.com/token", () => {
+        return HttpResponse.json(
+          { error: "unauthorized_client", error_description: "Client authentication failed" },
+          { status: 401 }
+        );
+      })
+    );
+
+    const response = await request(app)
+      .post("/api/oauth/token")
+      .send({
+        code: "test_code",
+        provider: "google",
+        redirectUri: "http://localhost/",
+        clientId: "wrong-client-id",
+        clientSecret: "wrong-client-secret",
+      });
+
+    expect(response.status).toBe(401);
+    expect(response.body.errorCode).toBe("unauthorized_client");
+    expect(response.body.guide).toBeDefined();
+    expect(response.body.guide.title).toBe("Unauthorized Client");
+    expect(response.body.guide.troubleshooting).toContain("Verify your Client ID and Client Secret are correct");
+  });
+
   it("should return a 400 error if parameters are missing", async () => {
     const response = await request(app).post("/api/oauth/token").send({
       provider: "github",

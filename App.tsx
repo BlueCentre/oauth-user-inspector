@@ -7,19 +7,21 @@ import type {
   ProviderGitLabUser,
   ProviderAuth0User,
   ProviderLinkedInUser,
+  EnhancedOAuthError,
 } from "./types";
 import { Spinner } from "./components/icons";
 import TopMenu from "./components/TopMenu";
 import UserInfoDisplay from "./components/UserInfoDisplay";
 import HelpModal from "./components/HelpModal";
 import LoginScreen from "./components/LoginScreen";
+import EnhancedErrorDisplay from "./components/EnhancedErrorDisplay";
 
 const getRedirectUri = () => window.location.origin + window.location.pathname;
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | EnhancedOAuthError | null>(null);
   const [diagnostics, setDiagnostics] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [hostedAvailability, setHostedAvailability] = useState<
@@ -423,6 +425,13 @@ const App: React.FC = () => {
         }
 
         if (!response.ok) {
+          // If we received an enhanced OAuth error, preserve it
+          if (data.guide) {
+            setError(data);
+            setIsLoading(false);
+            return;
+          }
+          
           throw new Error(
             data.error ||
               data.message ||
@@ -461,6 +470,10 @@ const App: React.FC = () => {
         );
         await fetchUser(access_token, provider);
       } catch (err: any) {
+        // Don't override enhanced OAuth errors that were already set
+        if (error && typeof error === "object" && error.guide) {
+          return;
+        }
         setError(`Failed to authenticate: ${err.message}`);
         setIsLoading(false);
       }
@@ -669,6 +682,12 @@ const App: React.FC = () => {
 
         if (!response.ok) {
           const errorData = await response.json();
+          // If we received an enhanced OAuth error, preserve it
+          if (errorData.guide) {
+            setError(errorData);
+            setIsLoading(false);
+            return;
+          }
           throw new Error(errorData.error || "Failed to refresh token");
         }
 
@@ -956,34 +975,12 @@ const App: React.FC = () => {
       </header>
       <main className="flex-1 w-full py-8">
         {error && (
-          <div
-            className="w-full p-4 mb-6 bg-red-900/40 border border-red-500/40 text-red-300 rounded-lg space-y-2"
-            role="alert"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-bold">Error</p>
-                <p>{error}</p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={runDiagnostics}
-                  className="px-3 py-1.5 text-xs rounded-md border border-red-400/40 bg-red-800/40 hover:bg-red-800/60 text-red-200"
-                >
-                  Diagnose
-                </button>
-                <button
-                  onClick={() => setError(null)}
-                  className="px-3 py-1.5 text-xs rounded-md border border-red-400/40 bg-red-800/40 hover:bg-red-800/60 text-red-200"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-            {diagnostics && (
-              <p className="text-xs text-red-200/80">{diagnostics}</p>
-            )}
-          </div>
+          <EnhancedErrorDisplay
+            error={error}
+            onDiagnose={runDiagnostics}
+            onDismiss={() => setError(null)}
+            diagnostics={diagnostics}
+          />
         )}
         <div className="mx-auto max-w-4xl px-4">
           <div className="mx-auto max-w-4xl">{renderContent()}</div>

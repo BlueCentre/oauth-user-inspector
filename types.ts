@@ -202,6 +202,20 @@ export interface ApiExploreRequest {
   endpoint: ApiEndpoint;
 }
 
+export interface OAuthErrorGuide {
+  errorCode: string;
+  title: string;
+  description: string;
+  troubleshooting: string[];
+  commonCauses: string[];
+}
+
+export interface EnhancedOAuthError {
+  error: string;
+  errorCode?: string;
+  guide?: OAuthErrorGuide;
+}
+
 export interface ApiExploreResponse {
   success: boolean;
   data?: any;
