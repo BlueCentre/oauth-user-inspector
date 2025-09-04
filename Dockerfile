@@ -14,6 +14,7 @@ RUN npm ci
 COPY package.json package-lock.json ./
 COPY App.tsx index.tsx index.css index.html ./
 COPY components/ ./components/
+COPY utils/ ./utils/
 COPY types.ts ./
 # Frontend types dir (if any) is optional; server types moved under server/
 # COPY types/ ./types/
