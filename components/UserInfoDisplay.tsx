@@ -10,6 +10,8 @@ import { getFieldDoc, getAllFieldDocs } from "../fieldDocs";
 import JsonTree from "./JsonTree";
 import TokenDisplay from "./TokenDisplay";
 import ApiExplorer from "./ApiExplorer";
+import CodeSnippetGenerator from "./CodeSnippetGenerator";
+import { getProviderEndpoints } from "../utils/apiEndpoints";
 
 interface UserInfoDisplayProps {
   user: AppUser;
@@ -50,17 +52,18 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   onTokenRevocation,
 }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<"both" | "table" | "json" | "api">(
-    () => {
-      const stored = localStorage.getItem("view_mode");
-      return stored === "table" ||
-        stored === "json" ||
-        stored === "both" ||
-        stored === "api"
-        ? stored
-        : "both";
-    },
-  );
+  const [viewMode, setViewMode] = useState<
+    "both" | "table" | "json" | "api" | "snippets"
+  >(() => {
+    const stored = localStorage.getItem("view_mode");
+    return stored === "table" ||
+      stored === "json" ||
+      stored === "both" ||
+      stored === "api" ||
+      stored === "snippets"
+      ? stored
+      : "both";
+  });
   const exportSnapshot = () => {
     try {
       const snapshot = {
@@ -87,7 +90,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       console.error("Failed to export snapshot", e);
     }
   };
-  const updateViewMode = (mode: "both" | "table" | "json" | "api") => {
+  const updateViewMode = (
+    mode: "both" | "table" | "json" | "api" | "snippets",
+  ) => {
     setViewMode(mode);
     localStorage.setItem("view_mode", mode);
   };
@@ -475,7 +480,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
           <span className="text-xs uppercase tracking-wide text-slate-400 self-center">
             View Mode:
           </span>
-          {(["both", "table", "json", "api"] as const).map((m) => (
+          {(["both", "table", "json", "api", "snippets"] as const).map((m) => (
             <button
               key={m}
               onClick={() => updateViewMode(m)}
@@ -487,7 +492,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                   ? "Table"
                   : m === "json"
                     ? "JSON"
-                    : "API Explorer"}
+                    : m === "api"
+                      ? "API Explorer"
+                      : "Code Snippets"}
             </button>
           ))}
           {importedSnapshot && (
@@ -534,202 +541,218 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
             </div>
           )}
 
-          {/* Structured Table */}
-          {viewMode !== "json" && viewMode !== "api" && (
-            <div
-              className={`p-6 ${viewMode === "both" ? "border-b md:border-b-0 md:border-r" : ""} border-slate-700 overflow-x-auto`}
-            >
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-                <h3 className="text-xl font-semibold text-slate-200">
-                  Provider Data Dump
-                </h3>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Filter (key or value)"
-                  ref={searchInputRef}
-                  className="w-full sm:w-64 text-sm px-3 py-1.5 bg-slate-900/70 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-slate-200 placeholder-slate-500"
-                />
-              </div>
-              {diffSummary && (
-                <div className="flex flex-wrap gap-3 mb-3 text-[11px] font-mono">
-                  <span className="px-2 py-0.5 rounded bg-emerald-900/40 border border-emerald-600 text-emerald-300">
-                    added: {diffSummary.added}
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-amber-900/40 border border-amber-600 text-amber-300">
-                    changed: {diffSummary.changed}
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-rose-900/40 border border-rose-600 text-rose-300">
-                    removed: {diffSummary.removed}
-                  </span>
-                </div>
-              )}
-              <table className="w-full text-left text-sm border-collapse">
-                <thead>
-                  <tr className="text-slate-400 text-xs uppercase tracking-wide">
-                    <th className="py-2 pr-3 font-medium">Field</th>
-                    <th className="py-2 font-medium">Value</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tableEntries.map(({ key, value, previousValue, status }) => {
-                    const display = renderPrimitive(value);
-                    const isLink = typeof value === "string" && isUrl(value);
-                    const isFieldPresent = value !== undefined;
-                    const isSchemaField = showAllFields && !isFieldPresent;
-                    const plainValue =
-                      value === undefined
-                        ? previousValue === undefined
-                          ? ""
-                          : String(previousValue)
-                        : typeof value === "string" ||
-                            typeof value === "number" ||
-                            typeof value === "boolean"
-                          ? String(value)
-                          : JSON.stringify(value);
-                    const doc = getFieldDoc(user.provider, key);
-
-                    let statusClasses = "";
-                    if (diffEnabled) {
-                      statusClasses =
-                        status === "added"
-                          ? "bg-emerald-900/20 border-l-2 border-emerald-500"
-                          : status === "changed"
-                            ? "bg-amber-900/20 border-l-2 border-amber-500"
-                            : status === "removed"
-                              ? "bg-rose-900/20 border-l-2 border-rose-500 opacity-80"
-                              : "";
-                    } else if (showAllFields && isSchemaField) {
-                      statusClasses =
-                        "bg-slate-800/30 border-l-2 border-slate-500";
-                    }
-
-                    return (
-                      <tr
-                        key={key}
-                        className={`border-t border-slate-700/60 hover:bg-slate-700/30 ${statusClasses}`}
-                      >
-                        <td className="py-2 pr-3 align-top text-slate-300 font-mono text-[11px] sm:text-xs break-all">
-                          <div className="flex items-start gap-1 group">
-                            <span
-                              className={isSchemaField ? "text-slate-500" : ""}
-                            >
-                              {key}
-                            </span>
-                            {diffEnabled && status !== "unchanged" && (
-                              <span className="text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-slate-600/60 text-slate-200">
-                                {status}
-                              </span>
-                            )}
-                            {showAllFields && isSchemaField && (
-                              <span className="text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-slate-600/40 text-slate-400">
-                                schema
-                              </span>
-                            )}
-                            {doc && (
-                              <span className="relative inline-block">
-                                <span
-                                  className="w-3 h-3 mt-[2px] text-[9px] leading-none flex items-center justify-center rounded-full bg-slate-600 text-slate-100 cursor-help group-hover:bg-slate-500"
-                                  title={`${doc.description}${doc.docsUrl ? `\nDocs: ${doc.docsUrl}` : ""}`}
-                                  aria-label={`Field info: ${doc.description}`}
-                                >
-                                  i
-                                </span>
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="py-2 align-top text-slate-100 text-[11px] sm:text-xs break-all">
-                          <div className="flex items-start gap-2">
-                            <div className="flex-1 min-w-0">
-                              {status === "removed" ? (
-                                <span
-                                  className="line-through text-slate-500"
-                                  title="Removed in current data"
-                                >
-                                  {renderPrimitive(previousValue)}
-                                </span>
-                              ) : isSchemaField ? (
-                                <span
-                                  className="text-slate-500 italic"
-                                  title="Field documented but not present in current data"
-                                >
-                                  (not present)
-                                </span>
-                              ) : isLink ? (
-                                <a
-                                  href={value as string}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-blue-400 hover:text-blue-300"
-                                >
-                                  Link
-                                </a>
-                              ) : (
-                                display || (
-                                  <span className="text-slate-500">
-                                    (object)
-                                  </span>
-                                )
-                              )}
-                              {status === "changed" && (
-                                <div className="mt-1 text-[10px] text-amber-300/80">
-                                  prev: {renderPrimitive(previousValue)}
-                                </div>
-                              )}
-                            </div>
-                            {!isSchemaField && (
-                              <button
-                                onClick={() =>
-                                  navigator.clipboard.writeText(plainValue)
-                                }
-                                className="shrink-0 p-1 rounded bg-slate-700/50 hover:bg-slate-600 text-slate-300 border border-slate-600"
-                                title={
-                                  status === "removed"
-                                    ? "Copy previous value"
-                                    : "Copy value"
-                                }
-                              >
-                                <ClipboardIcon className="w-3 h-3" />
-                              </button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                  {tableEntries.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={2}
-                        className="py-4 text-center text-slate-500 text-xs"
-                      >
-                        No matching fields
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+          {/* Code Snippets Section */}
+          {viewMode === "snippets" && (
+            <div className="p-6">
+              <CodeSnippetGenerator user={user} />
             </div>
           )}
-          {/* Raw JSON */}
-          {viewMode !== "table" && viewMode !== "api" && (
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-xl font-semibold text-slate-200">
-                  Raw JSON Data
-                </h3>
-                <div className="flex gap-2">
-                  <JsonViewToggle
-                    copyHandler={handleCopy}
-                    isCopied={isCopied}
+
+          {/* Structured Table */}
+          {viewMode !== "json" &&
+            viewMode !== "api" &&
+            viewMode !== "snippets" && (
+              <div
+                className={`p-6 ${viewMode === "both" ? "border-b md:border-b-0 md:border-r" : ""} border-slate-700 overflow-x-auto`}
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                  <h3 className="text-xl font-semibold text-slate-200">
+                    Provider Data Dump
+                  </h3>
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Filter (key or value)"
+                    ref={searchInputRef}
+                    className="w-full sm:w-64 text-sm px-3 py-1.5 bg-slate-900/70 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-slate-200 placeholder-slate-500"
                   />
                 </div>
+                {diffSummary && (
+                  <div className="flex flex-wrap gap-3 mb-3 text-[11px] font-mono">
+                    <span className="px-2 py-0.5 rounded bg-emerald-900/40 border border-emerald-600 text-emerald-300">
+                      added: {diffSummary.added}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-amber-900/40 border border-amber-600 text-amber-300">
+                      changed: {diffSummary.changed}
+                    </span>
+                    <span className="px-2 py-0.5 rounded bg-rose-900/40 border border-rose-600 text-rose-300">
+                      removed: {diffSummary.removed}
+                    </span>
+                  </div>
+                )}
+                <table className="w-full text-left text-sm border-collapse">
+                  <thead>
+                    <tr className="text-slate-400 text-xs uppercase tracking-wide">
+                      <th className="py-2 pr-3 font-medium">Field</th>
+                      <th className="py-2 font-medium">Value</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tableEntries.map(
+                      ({ key, value, previousValue, status }) => {
+                        const display = renderPrimitive(value);
+                        const isLink =
+                          typeof value === "string" && isUrl(value);
+                        const isFieldPresent = value !== undefined;
+                        const isSchemaField = showAllFields && !isFieldPresent;
+                        const plainValue =
+                          value === undefined
+                            ? previousValue === undefined
+                              ? ""
+                              : String(previousValue)
+                            : typeof value === "string" ||
+                                typeof value === "number" ||
+                                typeof value === "boolean"
+                              ? String(value)
+                              : JSON.stringify(value);
+                        const doc = getFieldDoc(user.provider, key);
+
+                        let statusClasses = "";
+                        if (diffEnabled) {
+                          statusClasses =
+                            status === "added"
+                              ? "bg-emerald-900/20 border-l-2 border-emerald-500"
+                              : status === "changed"
+                                ? "bg-amber-900/20 border-l-2 border-amber-500"
+                                : status === "removed"
+                                  ? "bg-rose-900/20 border-l-2 border-rose-500 opacity-80"
+                                  : "";
+                        } else if (showAllFields && isSchemaField) {
+                          statusClasses =
+                            "bg-slate-800/30 border-l-2 border-slate-500";
+                        }
+
+                        return (
+                          <tr
+                            key={key}
+                            className={`border-t border-slate-700/60 hover:bg-slate-700/30 ${statusClasses}`}
+                          >
+                            <td className="py-2 pr-3 align-top text-slate-300 font-mono text-[11px] sm:text-xs break-all">
+                              <div className="flex items-start gap-1 group">
+                                <span
+                                  className={
+                                    isSchemaField ? "text-slate-500" : ""
+                                  }
+                                >
+                                  {key}
+                                </span>
+                                {diffEnabled && status !== "unchanged" && (
+                                  <span className="text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-slate-600/60 text-slate-200">
+                                    {status}
+                                  </span>
+                                )}
+                                {showAllFields && isSchemaField && (
+                                  <span className="text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-slate-600/40 text-slate-400">
+                                    schema
+                                  </span>
+                                )}
+                                {doc && (
+                                  <span className="relative inline-block">
+                                    <span
+                                      className="w-3 h-3 mt-[2px] text-[9px] leading-none flex items-center justify-center rounded-full bg-slate-600 text-slate-100 cursor-help group-hover:bg-slate-500"
+                                      title={`${doc.description}${doc.docsUrl ? `\nDocs: ${doc.docsUrl}` : ""}`}
+                                      aria-label={`Field info: ${doc.description}`}
+                                    >
+                                      i
+                                    </span>
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            <td className="py-2 align-top text-slate-100 text-[11px] sm:text-xs break-all">
+                              <div className="flex items-start gap-2">
+                                <div className="flex-1 min-w-0">
+                                  {status === "removed" ? (
+                                    <span
+                                      className="line-through text-slate-500"
+                                      title="Removed in current data"
+                                    >
+                                      {renderPrimitive(previousValue)}
+                                    </span>
+                                  ) : isSchemaField ? (
+                                    <span
+                                      className="text-slate-500 italic"
+                                      title="Field documented but not present in current data"
+                                    >
+                                      (not present)
+                                    </span>
+                                  ) : isLink ? (
+                                    <a
+                                      href={value as string}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-blue-400 hover:text-blue-300"
+                                    >
+                                      Link
+                                    </a>
+                                  ) : (
+                                    display || (
+                                      <span className="text-slate-500">
+                                        (object)
+                                      </span>
+                                    )
+                                  )}
+                                  {status === "changed" && (
+                                    <div className="mt-1 text-[10px] text-amber-300/80">
+                                      prev: {renderPrimitive(previousValue)}
+                                    </div>
+                                  )}
+                                </div>
+                                {!isSchemaField && (
+                                  <button
+                                    onClick={() =>
+                                      navigator.clipboard.writeText(plainValue)
+                                    }
+                                    className="shrink-0 p-1 rounded bg-slate-700/50 hover:bg-slate-600 text-slate-300 border border-slate-600"
+                                    title={
+                                      status === "removed"
+                                        ? "Copy previous value"
+                                        : "Copy value"
+                                    }
+                                  >
+                                    <ClipboardIcon className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      },
+                    )}
+                    {tableEntries.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={2}
+                          className="py-4 text-center text-slate-500 text-xs"
+                        >
+                          No matching fields
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-              <JsonViewContainer data={user.rawData} />
-            </div>
-          )}
+            )}
+          {/* Raw JSON */}
+          {viewMode !== "table" &&
+            viewMode !== "api" &&
+            viewMode !== "snippets" && (
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-3">
+                  <h3 className="text-xl font-semibold text-slate-200">
+                    Raw JSON Data
+                  </h3>
+                  <div className="flex gap-2">
+                    <JsonViewToggle
+                      copyHandler={handleCopy}
+                      isCopied={isCopied}
+                    />
+                  </div>
+                </div>
+                <JsonViewContainer data={user.rawData} />
+              </div>
+            )}
         </div>
       </div>
     </div>
