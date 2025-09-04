@@ -906,6 +906,51 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
 
+  // Development-only function to demonstrate enhanced OAuth error display
+  const createEnhancedOAuthErrorDemo = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/test-oauth-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ errorCode: "unauthorized_client" }),
+      });
+      
+      const enhancedError = await response.json();
+      setError(enhancedError);
+    } catch (err: any) {
+      // Fallback if API isn't available - create enhanced error manually
+      const enhancedError: EnhancedOAuthError = {
+        error: "The client is not authorized to request an access token using this method.",
+        errorCode: "unauthorized_client",
+        guide: {
+          errorCode: "unauthorized_client",
+          title: "Unauthorized Client",
+          description: "The client is not authorized to request an access token using this method.",
+          troubleshooting: [
+            "Verify your Client ID and Client Secret are correct",
+            "Check that your application is properly registered with the OAuth provider",
+            "Ensure your redirect URI matches exactly what's registered",
+            "Confirm your application type supports the requested grant type",
+            "Check if your application needs approval from the OAuth provider"
+          ],
+          commonCauses: [
+            "Incorrect Client ID or Client Secret",
+            "Application not approved or verified",
+            "Redirect URI mismatch",
+            "Using wrong grant type for application",
+            "Application suspended or disabled"
+          ]
+        }
+      };
+      setError(enhancedError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -983,7 +1028,7 @@ const App: React.FC = () => {
               diagnostics={diagnostics}
             />
           )}
-          <div className="mx-auto max-w-4xl">{renderContent()}</div>
+          {renderContent()}
         </div>
       </main>
       <footer className="w-full border-t border-slate-800/60 mt-8">
@@ -997,13 +1042,22 @@ const App: React.FC = () => {
               Help & Shortcuts
             </button>
             {process.env.NODE_ENV === "development" && (
-              <button
-                onClick={createSampleTokenDemo}
-                className="text-xs px-3 py-1.5 rounded-md border border-emerald-600 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-700/20"
-                title="Demo the enhanced token display with sample JWT tokens"
-              >
-                Demo Token Display
-              </button>
+              <>
+                <button
+                  onClick={createSampleTokenDemo}
+                  className="text-xs px-3 py-1.5 rounded-md border border-emerald-600 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-700/20"
+                  title="Demo the enhanced token display with sample JWT tokens"
+                >
+                  Demo Token Display
+                </button>
+                <button
+                  onClick={createEnhancedOAuthErrorDemo}
+                  className="text-xs px-3 py-1.5 rounded-md border border-red-600 text-red-400 hover:text-red-200 hover:bg-red-700/20"
+                  title="Demo the enhanced OAuth error display with troubleshooting guidance"
+                >
+                  Demo OAuth Error
+                </button>
+              </>
             )}
           </div>
         </div>
