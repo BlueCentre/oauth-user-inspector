@@ -917,33 +917,35 @@ const App: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ errorCode: "unauthorized_client" }),
       });
-      
+
       const enhancedError = await response.json();
       setError(enhancedError);
     } catch (err: any) {
       // Fallback if API isn't available - create enhanced error manually
       const enhancedError: EnhancedOAuthError = {
-        error: "The client is not authorized to request an access token using this method.",
+        error:
+          "The client is not authorized to request an access token using this method.",
         errorCode: "unauthorized_client",
         guide: {
           errorCode: "unauthorized_client",
           title: "Unauthorized Client",
-          description: "The client is not authorized to request an access token using this method.",
+          description:
+            "The client is not authorized to request an access token using this method.",
           troubleshooting: [
             "Verify your Client ID and Client Secret are correct",
             "Check that your application is properly registered with the OAuth provider",
             "Ensure your redirect URI matches exactly what's registered",
             "Confirm your application type supports the requested grant type",
-            "Check if your application needs approval from the OAuth provider"
+            "Check if your application needs approval from the OAuth provider",
           ],
           commonCauses: [
             "Incorrect Client ID or Client Secret",
             "Application not approved or verified",
             "Redirect URI mismatch",
             "Using wrong grant type for application",
-            "Application suspended or disabled"
-          ]
-        }
+            "Application suspended or disabled",
+          ],
+        },
       };
       setError(enhancedError);
     } finally {
@@ -1019,17 +1021,17 @@ const App: React.FC = () => {
         </div>
       </header>
       <main className="flex-1 w-full py-8">
-        <div className="mx-auto max-w-4xl px-4">
-          {error && (
+        {error && (
+          <div className="mb-6 mx-auto max-w-4xl px-4">
             <EnhancedErrorDisplay
               error={error}
               onDiagnose={runDiagnostics}
               onDismiss={() => setError(null)}
               diagnostics={diagnostics}
             />
-          )}
-          {renderContent()}
-        </div>
+          </div>
+        )}
+        <div className="mx-auto max-w-4xl px-4">{renderContent()}</div>
       </main>
       <footer className="w-full border-t border-slate-800/60 mt-8">
         <div className="mx-auto max-w-4xl px-4 py-6 text-center text-sm text-slate-600 flex flex-col items-center gap-2">
