@@ -6,7 +6,7 @@ import {
   ClipboardIcon,
   ClipboardCheckIcon,
 } from "./icons";
-import { getFieldDoc } from "../fieldDocs";
+import { getFieldDoc, getAllFieldDocs } from "../fieldDocs";
 import JsonTree from "./JsonTree";
 import TokenDisplay from "./TokenDisplay";
 import ApiExplorer from "./ApiExplorer";
@@ -50,12 +50,17 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   onTokenRevocation,
 }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<"both" | "table" | "json" | "api">(() => {
-    const stored = localStorage.getItem("view_mode");
-    return stored === "table" || stored === "json" || stored === "both" || stored === "api"
-      ? stored
-      : "both";
-  });
+  const [viewMode, setViewMode] = useState<"both" | "table" | "json" | "api">(
+    () => {
+      const stored = localStorage.getItem("view_mode");
+      return stored === "table" ||
+        stored === "json" ||
+        stored === "both" ||
+        stored === "api"
+        ? stored
+        : "both";
+    },
+  );
   const exportSnapshot = () => {
     try {
       const snapshot = {
@@ -105,6 +110,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   const [diffEnabled, setDiffEnabled] = useState<boolean>(
     () => localStorage.getItem("diff_enabled") === "true",
   );
+  const [showAllFields, setShowAllFields] = useState<boolean>(
+    () => localStorage.getItem("show_all_fields") === "true",
+  );
   const snapshotRaw = importedSnapshot?.rawData;
   type DiffStatus = "unchanged" | "added" | "removed" | "changed";
   interface TableEntry {
@@ -116,11 +124,35 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
 
   const tableEntries = useMemo(() => {
     const raw: Record<string, any> = user.rawData as any;
-    // Only show primitive (string/number/boolean/null) top-level keys; skip objects unless known URL
-    const primitiveKeys = Object.keys(raw).filter((k) => {
-      const v = raw[k];
-      return v === null || ["string", "number", "boolean"].includes(typeof v);
-    });
+
+    // Get all potential fields for this provider when showAllFields is enabled
+    let fieldsToShow: string[];
+
+    if (showAllFields) {
+      // Get all documented fields for this provider
+      const allFieldDocs = getAllFieldDocs(user.provider);
+      const allDocumentedFields = Object.keys(allFieldDocs);
+
+      // Get primitive fields from current data
+      const primitiveKeys = Object.keys(raw).filter((k) => {
+        const v = raw[k];
+        return v === null || ["string", "number", "boolean"].includes(typeof v);
+      });
+
+      // Combine both sets, preferring documented fields
+      const combinedFields = new Set([
+        ...allDocumentedFields,
+        ...primitiveKeys,
+      ]);
+      fieldsToShow = Array.from(combinedFields);
+    } else {
+      // Original behavior: only show primitive fields that exist in data
+      fieldsToShow = Object.keys(raw).filter((k) => {
+        const v = raw[k];
+        return v === null || ["string", "number", "boolean"].includes(typeof v);
+      });
+    }
+
     // Preferred ordering for common GitHub fields
     const preferredOrder = [
       "login",
@@ -156,7 +188,8 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       "created_at",
       "updated_at",
     ];
-    primitiveKeys.sort((a, b) => {
+
+    fieldsToShow.sort((a, b) => {
       const ai = preferredOrder.indexOf(a);
       const bi = preferredOrder.indexOf(b);
       if (ai !== -1 && bi !== -1) return ai - bi;
@@ -164,7 +197,8 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       if (bi !== -1) return 1;
       return a.localeCompare(b);
     });
-    const entries: TableEntry[] = primitiveKeys.map((key) => ({
+
+    const entries: TableEntry[] = fieldsToShow.map((key) => ({
       key,
       value: raw[key],
       status: "unchanged" as DiffStatus,
@@ -176,7 +210,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
         const v = prev[k];
         return v === null || ["string", "number", "boolean"].includes(typeof v);
       });
-      const currentSet = new Set(primitiveKeys);
+      const currentSet = new Set(
+        fieldsToShow.filter((k) => raw[k] !== undefined),
+      );
       const prevSet = new Set(prevPrimitiveKeys);
       // Mark added / changed
       for (const e of entries) {
@@ -230,7 +266,14 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       return order(a.status) - order(b.status);
     });
     return filtered;
-  }, [user.rawData, search, diffEnabled, snapshotRaw]);
+  }, [
+    user.rawData,
+    search,
+    diffEnabled,
+    snapshotRaw,
+    showAllFields,
+    user.provider,
+  ]);
 
   const diffSummary = useMemo(() => {
     if (!diffEnabled) return null;
@@ -250,6 +293,12 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
     const next = !diffEnabled;
     setDiffEnabled(next);
     localStorage.setItem("diff_enabled", String(next));
+  };
+
+  const toggleShowAllFields = () => {
+    const next = !showAllFields;
+    setShowAllFields(next);
+    localStorage.setItem("show_all_fields", String(next));
   };
 
   // Keyboard shortcuts
@@ -432,7 +481,13 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
               onClick={() => updateViewMode(m)}
               className={`text-xs px-3 py-1 rounded border transition-colors ${viewMode === m ? "bg-slate-600 border-slate-500 text-white" : "bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700"}`}
             >
-              {m === "both" ? "Both" : m === "table" ? "Table" : m === "json" ? "JSON" : "API Explorer"}
+              {m === "both"
+                ? "Both"
+                : m === "table"
+                  ? "Table"
+                  : m === "json"
+                    ? "JSON"
+                    : "API Explorer"}
             </button>
           ))}
           {importedSnapshot && (
@@ -448,6 +503,17 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
               Diff {diffEnabled ? "On" : "Off"}
             </button>
           )}
+          <button
+            onClick={toggleShowAllFields}
+            className={`text-xs px-3 py-1 rounded border transition-colors ${showAllFields ? "bg-blue-600/70 border-blue-500 text-white" : "bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700"}`}
+            title={
+              showAllFields
+                ? "Show only fields present in current data"
+                : "Show all documented schema fields for this provider"
+            }
+          >
+            Schema {showAllFields ? "On" : "Off"}
+          </button>
           <button
             onClick={exportSnapshot}
             className="ml-auto text-xs px-3 py-1 rounded border bg-slate-700/40 border-slate-600 text-slate-300 hover:bg-slate-700 transition-colors"
@@ -510,6 +576,8 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                   {tableEntries.map(({ key, value, previousValue, status }) => {
                     const display = renderPrimitive(value);
                     const isLink = typeof value === "string" && isUrl(value);
+                    const isFieldPresent = value !== undefined;
+                    const isSchemaField = showAllFields && !isFieldPresent;
                     const plainValue =
                       value === undefined
                         ? previousValue === undefined
@@ -521,15 +589,22 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                           ? String(value)
                           : JSON.stringify(value);
                     const doc = getFieldDoc(user.provider, key);
-                    const statusClasses = diffEnabled
-                      ? status === "added"
-                        ? "bg-emerald-900/20 border-l-2 border-emerald-500"
-                        : status === "changed"
-                          ? "bg-amber-900/20 border-l-2 border-amber-500"
-                          : status === "removed"
-                            ? "bg-rose-900/20 border-l-2 border-rose-500 opacity-80"
-                            : ""
-                      : "";
+
+                    let statusClasses = "";
+                    if (diffEnabled) {
+                      statusClasses =
+                        status === "added"
+                          ? "bg-emerald-900/20 border-l-2 border-emerald-500"
+                          : status === "changed"
+                            ? "bg-amber-900/20 border-l-2 border-amber-500"
+                            : status === "removed"
+                              ? "bg-rose-900/20 border-l-2 border-rose-500 opacity-80"
+                              : "";
+                    } else if (showAllFields && isSchemaField) {
+                      statusClasses =
+                        "bg-slate-800/30 border-l-2 border-slate-500";
+                    }
+
                     return (
                       <tr
                         key={key}
@@ -537,10 +612,19 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                       >
                         <td className="py-2 pr-3 align-top text-slate-300 font-mono text-[11px] sm:text-xs break-all">
                           <div className="flex items-start gap-1 group">
-                            <span>{key}</span>
+                            <span
+                              className={isSchemaField ? "text-slate-500" : ""}
+                            >
+                              {key}
+                            </span>
                             {diffEnabled && status !== "unchanged" && (
                               <span className="text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-slate-600/60 text-slate-200">
                                 {status}
+                              </span>
+                            )}
+                            {showAllFields && isSchemaField && (
+                              <span className="text-[9px] uppercase tracking-wide rounded px-1 py-0.5 bg-slate-600/40 text-slate-400">
+                                schema
                               </span>
                             )}
                             {doc && (
@@ -566,6 +650,13 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                                 >
                                   {renderPrimitive(previousValue)}
                                 </span>
+                              ) : isSchemaField ? (
+                                <span
+                                  className="text-slate-500 italic"
+                                  title="Field documented but not present in current data"
+                                >
+                                  (not present)
+                                </span>
                               ) : isLink ? (
                                 <a
                                   href={value as string}
@@ -588,19 +679,21 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                                 </div>
                               )}
                             </div>
-                            <button
-                              onClick={() =>
-                                navigator.clipboard.writeText(plainValue)
-                              }
-                              className="shrink-0 p-1 rounded bg-slate-700/50 hover:bg-slate-600 text-slate-300 border border-slate-600"
-                              title={
-                                status === "removed"
-                                  ? "Copy previous value"
-                                  : "Copy value"
-                              }
-                            >
-                              <ClipboardIcon className="w-3 h-3" />
-                            </button>
+                            {!isSchemaField && (
+                              <button
+                                onClick={() =>
+                                  navigator.clipboard.writeText(plainValue)
+                                }
+                                className="shrink-0 p-1 rounded bg-slate-700/50 hover:bg-slate-600 text-slate-300 border border-slate-600"
+                                title={
+                                  status === "removed"
+                                    ? "Copy previous value"
+                                    : "Copy value"
+                                }
+                              >
+                                <ClipboardIcon className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

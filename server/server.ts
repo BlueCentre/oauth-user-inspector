@@ -925,15 +925,15 @@ app.post("/api/explore", async (req: Request, res: Response) => {
     const { provider, accessToken, endpoint } = req.body;
 
     if (!provider || !accessToken || !endpoint) {
-      res.status(400).json({ 
-        error: "Missing required fields: provider, accessToken, endpoint" 
+      res.status(400).json({
+        error: "Missing required fields: provider, accessToken, endpoint",
       });
       return;
     }
 
     if (!endpoint.url || !endpoint.method) {
-      res.status(400).json({ 
-        error: "Invalid endpoint: missing url or method" 
+      res.status(400).json({
+        error: "Invalid endpoint: missing url or method",
       });
       return;
     }
@@ -951,8 +951,8 @@ app.post("/api/explore", async (req: Request, res: Response) => {
       // Get Auth0 domain from stored metadata
       const metaRaw = req.body.auth0Domain;
       if (!metaRaw) {
-        res.status(400).json({ 
-          error: "Auth0 domain required for Auth0 API calls" 
+        res.status(400).json({
+          error: "Auth0 domain required for Auth0 API calls",
         });
         return;
       }
@@ -961,7 +961,7 @@ app.post("/api/explore", async (req: Request, res: Response) => {
 
     // Prepare headers
     const headers: Record<string, string> = {
-      "Authorization": `Bearer ${accessToken}`,
+      Authorization: `Bearer ${accessToken}`,
       "User-Agent": "OAuth-User-Inspector/1.0",
     };
 
@@ -992,7 +992,9 @@ app.post("/api/explore", async (req: Request, res: Response) => {
       success: apiResponse.ok,
       status: apiResponse.status,
       data: responseData,
-      error: apiResponse.ok ? undefined : responseData.message || responseData.error || "API call failed",
+      error: apiResponse.ok
+        ? undefined
+        : responseData.message || responseData.error || "API call failed",
       headers: Object.fromEntries(apiResponse.headers.entries()),
     });
 
@@ -1004,9 +1006,9 @@ app.post("/api/explore", async (req: Request, res: Response) => {
       provider: req.body?.provider,
       endpointId: req.body?.endpoint?.id,
     });
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: error.message || "Failed to make API call" 
+      error: error.message || "Failed to make API call",
     });
   }
 });
