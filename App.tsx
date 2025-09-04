@@ -1043,7 +1043,7 @@ const App: React.FC = () => {
             >
               Help & Shortcuts
             </button>
-            {process.env.NODE_ENV === "development" && (
+            {process.env.NODE_ENV == "development" && (
               <>
                 <button
                   onClick={createSampleTokenDemo}
