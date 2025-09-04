@@ -6,6 +6,7 @@ import fs from "fs";
 import { v4 as uuidv4 } from "uuid";
 import { SecretManagerServiceClient } from "@google-cloud/secret-manager";
 import logger, { createRequestLogger, logTiming, logError } from "./logger.js";
+import { enhanceOAuthError } from "./oauth-error-guide.js";
 
 const app = express();
 const port = parseInt(process.env.PORT || "8080", 10);
@@ -303,22 +304,20 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
         });
       }
 
-      try {
-        const errorData = JSON.parse(responseText);
-        return res.status(tokenResponse.status).json({
-          error:
-            errorData.error_description ||
-            errorData.error ||
-            "Failed to exchange code for token.",
-        });
-      } catch (e) {
-        const params = new URLSearchParams(responseText);
-        const error =
-          params.get("error_description") ||
-          params.get("error") ||
-          responseText;
-        return res.status(tokenResponse.status).json({ error });
-      }
+      // Use enhanced error detection to provide better troubleshooting guidance
+      const enhancedError = enhanceOAuthError(
+        responseText,
+        tokenResponse.status,
+        provider,
+      );
+
+      reqLogger.info("Enhanced OAuth error detected", {
+        provider,
+        errorCode: enhancedError.errorCode,
+        hasGuide: !!enhancedError.guide,
+      });
+
+      return res.status(tokenResponse.status).json(enhancedError);
     }
 
     const tokenData = JSON.parse(responseText);
@@ -497,22 +496,20 @@ app.post("/api/oauth/refresh", async (req: Request, res: Response) => {
         responseText: responseText.substring(0, 500),
       });
 
-      try {
-        const errorData = JSON.parse(responseText);
-        return res.status(refreshResponse.status).json({
-          error:
-            errorData.error_description ||
-            errorData.error ||
-            "Failed to refresh token.",
-        });
-      } catch (e) {
-        const params = new URLSearchParams(responseText);
-        const error =
-          params.get("error_description") ||
-          params.get("error") ||
-          responseText;
-        return res.status(refreshResponse.status).json({ error });
-      }
+      // Use enhanced error detection to provide better troubleshooting guidance
+      const enhancedError = enhanceOAuthError(
+        responseText,
+        refreshResponse.status,
+        provider,
+      );
+
+      reqLogger.info("Enhanced OAuth refresh error detected", {
+        provider,
+        errorCode: enhancedError.errorCode,
+        hasGuide: !!enhancedError.guide,
+      });
+
+      return res.status(refreshResponse.status).json(enhancedError);
     }
 
     const tokenData = JSON.parse(responseText);

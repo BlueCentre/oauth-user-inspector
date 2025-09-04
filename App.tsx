@@ -7,19 +7,21 @@ import type {
   ProviderGitLabUser,
   ProviderAuth0User,
   ProviderLinkedInUser,
+  EnhancedOAuthError,
 } from "./types";
 import { Spinner } from "./components/icons";
 import TopMenu from "./components/TopMenu";
 import UserInfoDisplay from "./components/UserInfoDisplay";
 import HelpModal from "./components/HelpModal";
 import LoginScreen from "./components/LoginScreen";
+import EnhancedErrorDisplay from "./components/EnhancedErrorDisplay";
 
 const getRedirectUri = () => window.location.origin + window.location.pathname;
 
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | EnhancedOAuthError | null>(null);
   const [diagnostics, setDiagnostics] = useState<string | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [hostedAvailability, setHostedAvailability] = useState<
@@ -423,6 +425,13 @@ const App: React.FC = () => {
         }
 
         if (!response.ok) {
+          // If we received an enhanced OAuth error, preserve it
+          if (data.guide) {
+            setError(data);
+            setIsLoading(false);
+            return;
+          }
+
           throw new Error(
             data.error ||
               data.message ||
@@ -461,6 +470,10 @@ const App: React.FC = () => {
         );
         await fetchUser(access_token, provider);
       } catch (err: any) {
+        // Don't override enhanced OAuth errors that were already set
+        if (error && typeof error === "object" && error.guide) {
+          return;
+        }
         setError(`Failed to authenticate: ${err.message}`);
         setIsLoading(false);
       }
@@ -669,6 +682,12 @@ const App: React.FC = () => {
 
         if (!response.ok) {
           const errorData = await response.json();
+          // If we received an enhanced OAuth error, preserve it
+          if (errorData.guide) {
+            setError(errorData);
+            setIsLoading(false);
+            return;
+          }
           throw new Error(errorData.error || "Failed to refresh token");
         }
 
@@ -887,6 +906,53 @@ const App: React.FC = () => {
     setIsLoading(false);
   };
 
+  // Development-only function to demonstrate enhanced OAuth error display
+  const createEnhancedOAuthErrorDemo = async () => {
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetch("/api/test-oauth-error", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ errorCode: "unauthorized_client" }),
+      });
+
+      const enhancedError = await response.json();
+      setError(enhancedError);
+    } catch (err: any) {
+      // Fallback if API isn't available - create enhanced error manually
+      const enhancedError: EnhancedOAuthError = {
+        error:
+          "The client is not authorized to request an access token using this method.",
+        errorCode: "unauthorized_client",
+        guide: {
+          errorCode: "unauthorized_client",
+          title: "Unauthorized Client",
+          description:
+            "The client is not authorized to request an access token using this method.",
+          troubleshooting: [
+            "Verify your Client ID and Client Secret are correct",
+            "Check that your application is properly registered with the OAuth provider",
+            "Ensure your redirect URI matches exactly what's registered",
+            "Confirm your application type supports the requested grant type",
+            "Check if your application needs approval from the OAuth provider",
+          ],
+          commonCauses: [
+            "Incorrect Client ID or Client Secret",
+            "Application not approved or verified",
+            "Redirect URI mismatch",
+            "Using wrong grant type for application",
+            "Application suspended or disabled",
+          ],
+        },
+      };
+      setError(enhancedError);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -956,38 +1022,16 @@ const App: React.FC = () => {
       </header>
       <main className="flex-1 w-full py-8">
         {error && (
-          <div
-            className="w-full p-4 mb-6 bg-red-900/40 border border-red-500/40 text-red-300 rounded-lg space-y-2"
-            role="alert"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="font-bold">Error</p>
-                <p>{error}</p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <button
-                  onClick={runDiagnostics}
-                  className="px-3 py-1.5 text-xs rounded-md border border-red-400/40 bg-red-800/40 hover:bg-red-800/60 text-red-200"
-                >
-                  Diagnose
-                </button>
-                <button
-                  onClick={() => setError(null)}
-                  className="px-3 py-1.5 text-xs rounded-md border border-red-400/40 bg-red-800/40 hover:bg-red-800/60 text-red-200"
-                >
-                  Dismiss
-                </button>
-              </div>
-            </div>
-            {diagnostics && (
-              <p className="text-xs text-red-200/80">{diagnostics}</p>
-            )}
+          <div className="mb-6 mx-auto max-w-4xl px-4">
+            <EnhancedErrorDisplay
+              error={error}
+              onDiagnose={runDiagnostics}
+              onDismiss={() => setError(null)}
+              diagnostics={diagnostics}
+            />
           </div>
         )}
-        <div className="mx-auto max-w-4xl px-4">
-          <div className="mx-auto max-w-4xl">{renderContent()}</div>
-        </div>
+        <div className="mx-auto max-w-4xl px-4">{renderContent()}</div>
       </main>
       <footer className="w-full border-t border-slate-800/60 mt-8">
         <div className="mx-auto max-w-4xl px-4 py-6 text-center text-sm text-slate-600 flex flex-col items-center gap-2">
@@ -999,14 +1043,23 @@ const App: React.FC = () => {
             >
               Help & Shortcuts
             </button>
-            {process.env.NODE_ENV === "development" && (
-              <button
-                onClick={createSampleTokenDemo}
-                className="text-xs px-3 py-1.5 rounded-md border border-emerald-600 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-700/20"
-                title="Demo the enhanced token display with sample JWT tokens"
-              >
-                Demo Token Display
-              </button>
+            {process.env.NODE_ENV == "development" && (
+              <>
+                <button
+                  onClick={createSampleTokenDemo}
+                  className="text-xs px-3 py-1.5 rounded-md border border-emerald-600 text-emerald-400 hover:text-emerald-200 hover:bg-emerald-700/20"
+                  title="Demo the enhanced token display with sample JWT tokens"
+                >
+                  Demo Token Display
+                </button>
+                <button
+                  onClick={createEnhancedOAuthErrorDemo}
+                  className="text-xs px-3 py-1.5 rounded-md border border-red-600 text-red-400 hover:text-red-200 hover:bg-red-700/20"
+                  title="Demo the enhanced OAuth error display with troubleshooting guidance"
+                >
+                  Demo OAuth Error
+                </button>
+              </>
             )}
           </div>
         </div>
