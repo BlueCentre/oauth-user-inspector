@@ -10,6 +10,8 @@ import { getFieldDoc, getAllFieldDocs } from "../fieldDocs";
 import JsonTree from "./JsonTree";
 import TokenDisplay from "./TokenDisplay";
 import ApiExplorer from "./ApiExplorer";
+import CodeSnippetGenerator from "./CodeSnippetGenerator";
+import { getProviderEndpoints } from "../utils/apiEndpoints";
 
 interface UserInfoDisplayProps {
   user: AppUser;
@@ -50,13 +52,14 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   onTokenRevocation,
 }) => {
   const [isCopied, setIsCopied] = useState(false);
-  const [viewMode, setViewMode] = useState<"both" | "table" | "json" | "api">(
+  const [viewMode, setViewMode] = useState<"both" | "table" | "json" | "api" | "snippets">(
     () => {
       const stored = localStorage.getItem("view_mode");
       return stored === "table" ||
         stored === "json" ||
         stored === "both" ||
-        stored === "api"
+        stored === "api" ||
+        stored === "snippets"
         ? stored
         : "both";
     },
@@ -87,7 +90,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       console.error("Failed to export snapshot", e);
     }
   };
-  const updateViewMode = (mode: "both" | "table" | "json" | "api") => {
+  const updateViewMode = (mode: "both" | "table" | "json" | "api" | "snippets") => {
     setViewMode(mode);
     localStorage.setItem("view_mode", mode);
   };
@@ -475,7 +478,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
           <span className="text-xs uppercase tracking-wide text-slate-400 self-center">
             View Mode:
           </span>
-          {(["both", "table", "json", "api"] as const).map((m) => (
+          {(["both", "table", "json", "api", "snippets"] as const).map((m) => (
             <button
               key={m}
               onClick={() => updateViewMode(m)}
@@ -487,7 +490,9 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
                   ? "Table"
                   : m === "json"
                     ? "JSON"
-                    : "API Explorer"}
+                    : m === "api"
+                      ? "API Explorer"
+                      : "Code Snippets"}
             </button>
           ))}
           {importedSnapshot && (
@@ -534,8 +539,15 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
             </div>
           )}
 
+          {/* Code Snippets Section */}
+          {viewMode === "snippets" && (
+            <div className="p-6">
+              <CodeSnippetGenerator user={user} />
+            </div>
+          )}
+
           {/* Structured Table */}
-          {viewMode !== "json" && viewMode !== "api" && (
+          {viewMode !== "json" && viewMode !== "api" && viewMode !== "snippets" && (
             <div
               className={`p-6 ${viewMode === "both" ? "border-b md:border-b-0 md:border-r" : ""} border-slate-700 overflow-x-auto`}
             >
@@ -714,7 +726,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
             </div>
           )}
           {/* Raw JSON */}
-          {viewMode !== "table" && viewMode !== "api" && (
+          {viewMode !== "table" && viewMode !== "api" && viewMode !== "snippets" && (
             <div className="p-6">
               <div className="flex justify-between items-center mb-3">
                 <h3 className="text-xl font-semibold text-slate-200">

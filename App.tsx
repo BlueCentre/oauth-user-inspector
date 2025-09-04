@@ -852,7 +852,53 @@ const App: React.FC = () => {
 
   // Development-only function to create a sample user with JWT tokens for testing
   const createSampleTokenDemo = () => {
-    // Sample JWT tokens for demonstration (these are NOT real tokens)
+    // Check if we already have a Google user, create GitHub instead
+    const isCurrentlyGoogle = user?.provider === "google";
+    
+    if (isCurrentlyGoogle) {
+      // Create GitHub demo user
+      const sampleAccessToken = "ghp_1234567890abcdefghijklmnopqrstuvwxyz12"; // GitHub PAT format
+      
+      const sampleUser: AppUser = {
+        provider: "github",
+        avatarUrl: "https://avatars.githubusercontent.com/u/12345?v=4",
+        name: "Demo GitHub User",
+        email: "demo@github.com",
+        profileUrl: "https://github.com/demo",
+        username: "demo",
+        rawData: {
+          login: "demo",
+          id: 12345,
+          node_id: "MDQ6VXNlcjEyMzQ1",
+          avatar_url: "https://avatars.githubusercontent.com/u/12345?v=4",
+          html_url: "https://github.com/demo",
+          name: "Demo GitHub User",
+          email: "demo@github.com",
+          public_repos: 42,
+          public_gists: 8,
+          followers: 150,
+          following: 75,
+          created_at: "2015-01-01T00:00:00Z",
+          updated_at: "2024-01-01T00:00:00Z",
+          bio: "Demo user for OAuth testing",
+          location: "San Francisco, CA",
+          company: "GitHub",
+          blog: "https://demo.github.io",
+          twitter_username: "demo"
+        },
+        accessToken: sampleAccessToken,
+        scopes: ["read:user", "user:email", "public_repo", "repo"],
+        tokenType: "token", // GitHub uses "token" not "Bearer"
+        tokenExpiresAt: undefined, // GitHub tokens don't expire
+      };
+
+      setUser(sampleUser);
+      setError(null);
+      setIsLoading(false);
+      return;
+    }
+
+    // Create Google demo user (original logic)
     const sampleAccessToken = "ghp_1234567890abcdefghijklmnopqrstuvwxyz12"; // GitHub PAT format
     // Create a JWT with very long URLs and values to test layout breaking
     const longPictureUrl =
