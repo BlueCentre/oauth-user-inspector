@@ -18,6 +18,10 @@ import EnhancedErrorDisplay from "./components/EnhancedErrorDisplay";
 
 const getRedirectUri = () => window.location.origin + window.location.pathname;
 
+const getEffectiveRedirectUri = (customUri?: string) => {
+  return customUri?.trim() || getRedirectUri();
+};
+
 const App: React.FC = () => {
   const [user, setUser] = useState<AppUser | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -27,6 +31,23 @@ const App: React.FC = () => {
   const [hostedAvailability, setHostedAvailability] = useState<
     Partial<Record<AuthProvider, boolean>>
   >({});
+  const [customRedirectUri, setCustomRedirectUri] = useState<string>("");
+
+  // Persist and restore custom redirect URI
+  useEffect(() => {
+    const stored = localStorage.getItem("custom_redirect_uri");
+    if (stored) {
+      setCustomRedirectUri(stored);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (customRedirectUri) {
+      localStorage.setItem("custom_redirect_uri", customRedirectUri);
+    } else {
+      localStorage.removeItem("custom_redirect_uri");
+    }
+  }, [customRedirectUri]);
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -378,7 +399,7 @@ const App: React.FC = () => {
           code,
           provider,
           isHosted,
-          redirectUri: getRedirectUri(),
+          redirectUri: getEffectiveRedirectUri(customRedirectUri),
         };
 
         if (!isHosted) {
@@ -539,7 +560,7 @@ const App: React.FC = () => {
     sessionStorage.setItem("oauth_credentials", JSON.stringify(credentials));
 
     let authUrl = "";
-    const redirectUri = getRedirectUri();
+    const redirectUri = getEffectiveRedirectUri(customRedirectUri);
 
     if (provider === "github") {
       const scope = scopes || "read:user,user:email";
@@ -599,7 +620,7 @@ const App: React.FC = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           provider,
-          redirectUri: getRedirectUri(),
+          redirectUri: getEffectiveRedirectUri(customRedirectUri),
           scopes,
         }),
       });
@@ -997,6 +1018,8 @@ const App: React.FC = () => {
           onHostedOAuthLogin={handleHostedOAuthLogin}
           isLoading={isLoading}
           hostedAvailability={hostedAvailability}
+          customRedirectUri={customRedirectUri}
+          onCustomRedirectUriChange={setCustomRedirectUri}
         />
       </div>
     );

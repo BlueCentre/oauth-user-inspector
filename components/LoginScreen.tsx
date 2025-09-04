@@ -25,9 +25,15 @@ interface LoginScreenProps {
   onHostedOAuthLogin: (provider: AuthProvider, scopes?: string) => void;
   isLoading: boolean;
   hostedAvailability?: Partial<Record<AuthProvider, boolean>>;
+  customRedirectUri?: string;
+  onCustomRedirectUriChange?: (uri: string) => void;
 }
 
 const getRedirectUri = () => window.location.origin + window.location.pathname;
+
+const getEffectiveRedirectUri = (customUri?: string) => {
+  return customUri?.trim() || getRedirectUri();
+};
 
 const LoginScreen: React.FC<LoginScreenProps> = ({
   onOAuthLogin,
@@ -36,6 +42,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   onHostedOAuthLogin,
   isLoading,
   hostedAvailability,
+  customRedirectUri = "",
+  onCustomRedirectUriChange,
 }) => {
   const [githubClientId, setGithubClientId] = useState("");
   const [githubClientSecret, setGithubClientSecret] = useState("");
@@ -67,15 +75,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
   const [toast, setToast] = useState<string | null>(null);
 
   const handleCopy = (provider: AuthProvider) => {
-    navigator.clipboard.writeText(getRedirectUri()).then(
-      () => {
-        setCopiedProvider(provider);
-        setTimeout(() => setCopiedProvider(null), 2000); // Reset after 2 seconds
-      },
-      (err) => {
-        console.error("Could not copy text: ", err);
-      },
-    );
+    navigator.clipboard
+      .writeText(getEffectiveRedirectUri(customRedirectUri))
+      .then(
+        () => {
+          setCopiedProvider(provider);
+          setTimeout(() => setCopiedProvider(null), 2000); // Reset after 2 seconds
+        },
+        (err) => {
+          console.error("Could not copy text: ", err);
+        },
+      );
   };
 
   const isHostedAvailable = (provider: AuthProvider): boolean => {
@@ -143,6 +153,42 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
         </p>
       </div>
 
+      {/* Redirect URI Configuration */}
+      <div className="bg-slate-900/30 p-4 rounded-lg border border-slate-700 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-white">
+            Redirect URI Configuration
+          </h3>
+        </div>
+        <div className="space-y-2">
+          <label className="block text-xs text-slate-400">
+            Custom Redirect URI (optional)
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={customRedirectUri}
+              onChange={(e) => onCustomRedirectUriChange?.(e.target.value)}
+              placeholder={getRedirectUri()}
+              className="flex-1 px-3 py-2 bg-slate-800 border border-slate-600 rounded-md text-slate-200 text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <button
+              type="button"
+              onClick={() => onCustomRedirectUriChange?.("")}
+              className="px-3 py-2 text-xs text-slate-400 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-md transition-colors"
+            >
+              Reset
+            </button>
+          </div>
+          <p className="text-xs text-slate-500">
+            Current:{" "}
+            <span className="text-slate-300 font-mono text-xs">
+              {getEffectiveRedirectUri(customRedirectUri)}
+            </span>
+          </p>
+        </div>
+      </div>
+
       <Tabs>
         <Tab label="GitHub" icon={<GithubIcon />}>
           <div className="space-y-8">
@@ -178,7 +224,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="flex items-center justify-between text-sm bg-slate-700 p-2 rounded-md mb-4">
                 <code className="text-xs text-slate-300 truncate">
-                  {getRedirectUri()}
+                  {getEffectiveRedirectUri(customRedirectUri)}
                 </code>
                 <button
                   onClick={() => handleCopy("github")}
@@ -418,7 +464,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="flex items-center justify-between text-sm bg-slate-700 p-2 rounded-md mb-4">
                 <code className="text-xs text-slate-300 truncate">
-                  {getRedirectUri()}
+                  {getEffectiveRedirectUri(customRedirectUri)}
                 </code>
                 <button
                   onClick={() => handleCopy("google")}
@@ -623,7 +669,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="flex items-center justify-between text-sm bg-slate-700 p-2 rounded-md mb-4">
                 <code className="text-xs text-slate-300 truncate">
-                  {getRedirectUri()}
+                  {getEffectiveRedirectUri(customRedirectUri)}
                 </code>
                 <button
                   onClick={() => handleCopy("gitlab")}
@@ -772,7 +818,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="flex items-center justify-between text-sm bg-slate-700 p-2 rounded-md mb-4">
                 <code className="text-xs text-slate-300 truncate">
-                  {getRedirectUri()}
+                  {getEffectiveRedirectUri(customRedirectUri)}
                 </code>
                 <button
                   onClick={() => handleCopy("auth0")}
@@ -942,7 +988,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({
               </div>
               <div className="flex items-center justify-between text-sm bg-slate-700 p-2 rounded-md mb-4">
                 <code className="text-xs text-slate-300 truncate">
-                  {getRedirectUri()}
+                  {getEffectiveRedirectUri(customRedirectUri)}
                 </code>
                 <button
                   onClick={() => handleCopy("linkedin")}
