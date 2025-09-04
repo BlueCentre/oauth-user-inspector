@@ -8,7 +8,7 @@ interface CodeSnippetGeneratorProps {
   selectedEndpoint?: ApiEndpoint | null;
 }
 
-type CodeLanguage = "curl" | "nodejs" | "python";
+type CodeLanguage = "curl" | "nodejs" | "python" | "go";
 
 interface CopyState {
   [key: string]: boolean;
@@ -18,35 +18,42 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
   user,
   selectedEndpoint,
 }) => {
-  const [selectedLanguage, setSelectedLanguage] = useState<CodeLanguage>("curl");
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<CodeLanguage>("curl");
   const [copyStates, setCopyStates] = useState<CopyState>({});
   const [maskToken, setMaskToken] = useState(true);
 
-  const endpoints = getProviderEndpoints(user.provider);
-  const [selectedEndpointLocal, setSelectedEndpointLocal] = useState<ApiEndpoint | null>(
-    selectedEndpoint || (endpoints.length > 0 ? endpoints[0] : null)
+  const endpoints = useMemo(
+    () => getProviderEndpoints(user.provider),
+    [user.provider],
   );
+  const [selectedEndpointLocal, setSelectedEndpointLocal] =
+    useState<ApiEndpoint | null>(
+      selectedEndpoint || (endpoints.length > 0 ? endpoints[0] : null),
+    );
 
   // Reset selected endpoint when provider changes
   useEffect(() => {
     if (!selectedEndpoint && endpoints.length > 0) {
       setSelectedEndpointLocal(endpoints[0]);
     }
-  }, [user.provider, endpoints, selectedEndpoint]);
+  }, [user.provider, selectedEndpoint]); // Remove 'endpoints' from dependency array
 
   // Use the passed selectedEndpoint if available, otherwise use local selection
   const currentEndpoint = selectedEndpoint || selectedEndpointLocal;
 
   const accessToken = user.accessToken || "your_access_token_here";
-  const displayToken = maskToken ? 
-    accessToken.length > 8 ? `${accessToken.substring(0, 4)}${"•".repeat(12)}${accessToken.substring(accessToken.length - 4)}` : "••••••••" 
+  const displayToken = maskToken
+    ? accessToken.length > 8
+      ? `${accessToken.substring(0, 4)}${"•".repeat(12)}${accessToken.substring(accessToken.length - 4)}`
+      : "••••••••"
     : accessToken;
 
   const generateCurlSnippet = (endpoint: ApiEndpoint): string => {
     const headers = [
       `'Authorization: Bearer ${displayToken}'`,
       `'Accept: application/json'`,
-      `'User-Agent: YourAppName/1.0'`
+      `'User-Agent: YourAppName/1.0'`,
     ];
 
     if (endpoint.method !== "GET") {
@@ -60,7 +67,11 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
       if (index < headers.length - 1) snippet += " \\\n";
     });
 
-    if (endpoint.method === "POST" || endpoint.method === "PUT" || endpoint.method === "PATCH") {
+    if (
+      endpoint.method === "POST" ||
+      endpoint.method === "PUT" ||
+      endpoint.method === "PATCH"
+    ) {
       snippet += ` \\\n  -d '{}'`;
     }
 
@@ -71,18 +82,22 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
     const fetchOptions = {
       method: endpoint.method,
       headers: {
-        'Authorization': `Bearer ${displayToken}`,
-        'Accept': 'application/json',
-        'User-Agent': 'YourAppName/1.0'
-      } as any
+        Authorization: `Bearer ${displayToken}`,
+        Accept: "application/json",
+        "User-Agent": "YourAppName/1.0",
+      } as any,
     };
 
     if (endpoint.method !== "GET") {
-      fetchOptions.headers['Content-Type'] = 'application/json';
+      fetchOptions.headers["Content-Type"] = "application/json";
     }
 
-    if (endpoint.method === "POST" || endpoint.method === "PUT" || endpoint.method === "PATCH") {
-      (fetchOptions as any).body = 'JSON.stringify({})';
+    if (
+      endpoint.method === "POST" ||
+      endpoint.method === "PUT" ||
+      endpoint.method === "PATCH"
+    ) {
+      (fetchOptions as any).body = "JSON.stringify({})";
     }
 
     let snippet = `// Using fetch API\n`;
@@ -93,11 +108,11 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
       snippet += `    '${key}': '${value}',\n`;
     });
     snippet += `  }`;
-    
+
     if (fetchOptions.body) {
       snippet += `,\n  body: JSON.stringify({}) // Add your data here`;
     }
-    
+
     snippet += `\n});\n\n`;
     snippet += `const data = await response.json();\nconsole.log(data);`;
 
@@ -106,13 +121,13 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
 
   const generatePythonSnippet = (endpoint: ApiEndpoint): string => {
     const headers = {
-      'Authorization': `Bearer ${displayToken}`,
-      'Accept': 'application/json',
-      'User-Agent': 'YourAppName/1.0'
+      Authorization: `Bearer ${displayToken}`,
+      Accept: "application/json",
+      "User-Agent": "YourAppName/1.0",
     } as any;
 
     if (endpoint.method !== "GET") {
-      headers['Content-Type'] = 'application/json';
+      headers["Content-Type"] = "application/json";
     }
 
     let snippet = `import requests\nimport json\n\n`;
@@ -144,7 +159,69 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
     return snippet;
   };
 
-  const generateSnippet = (endpoint: ApiEndpoint, language: CodeLanguage): string => {
+  const generateGoSnippet = (endpoint: ApiEndpoint): string => {
+    let snippet = `package main\n\n`;
+    snippet += `import (\n`;
+    snippet += `    "bytes"\n`;
+    snippet += `    "encoding/json"\n`;
+    snippet += `    "fmt"\n`;
+    snippet += `    "io"\n`;
+    snippet += `    "net/http"\n`;
+    snippet += `)\n\n`;
+    snippet += `func main() {\n`;
+    snippet += `    url := "${endpoint.url}"\n`;
+
+    if (endpoint.method !== "GET") {
+      snippet += `    // Request payload (modify as needed)\n`;
+      snippet += `    payload := map[string]interface{}{}\n`;
+      snippet += `    jsonPayload, _ := json.Marshal(payload)\n\n`;
+      snippet += `    req, err := http.NewRequest("${endpoint.method}", url, bytes.NewBuffer(jsonPayload))\n`;
+    } else {
+      snippet += `\n    req, err := http.NewRequest("${endpoint.method}", url, nil)\n`;
+    }
+
+    snippet += `    if err != nil {\n`;
+    snippet += `        fmt.Printf("Error creating request: %v\\n", err)\n`;
+    snippet += `        return\n`;
+    snippet += `    }\n\n`;
+    snippet += `    // Set headers\n`;
+    snippet += `    req.Header.Set("Authorization", "Bearer ${displayToken}")\n`;
+    snippet += `    req.Header.Set("Accept", "application/json")\n`;
+    snippet += `    req.Header.Set("User-Agent", "YourAppName/1.0")\n`;
+
+    if (endpoint.method !== "GET") {
+      snippet += `    req.Header.Set("Content-Type", "application/json")\n`;
+    }
+
+    snippet += `\n    client := &http.Client{}\n`;
+    snippet += `    resp, err := client.Do(req)\n`;
+    snippet += `    if err != nil {\n`;
+    snippet += `        fmt.Printf("Error making request: %v\\n", err)\n`;
+    snippet += `        return\n`;
+    snippet += `    }\n`;
+    snippet += `    defer resp.Body.Close()\n\n`;
+    snippet += `    body, err := io.ReadAll(resp.Body)\n`;
+    snippet += `    if err != nil {\n`;
+    snippet += `        fmt.Printf("Error reading response: %v\\n", err)\n`;
+    snippet += `        return\n`;
+    snippet += `    }\n\n`;
+    snippet += `    if resp.StatusCode == 200 {\n`;
+    snippet += `        var result map[string]interface{}\n`;
+    snippet += `        json.Unmarshal(body, &result)\n`;
+    snippet += `        prettyJSON, _ := json.MarshalIndent(result, "", "  ")\n`;
+    snippet += `        fmt.Println(string(prettyJSON))\n`;
+    snippet += `    } else {\n`;
+    snippet += `        fmt.Printf("Error: %d - %s\\n", resp.StatusCode, string(body))\n`;
+    snippet += `    }\n`;
+    snippet += `}`;
+
+    return snippet;
+  };
+
+  const generateSnippet = (
+    endpoint: ApiEndpoint,
+    language: CodeLanguage,
+  ): string => {
     switch (language) {
       case "curl":
         return generateCurlSnippet(endpoint);
@@ -152,6 +229,8 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
         return generateNodeJSSnippet(endpoint);
       case "python":
         return generatePythonSnippet(endpoint);
+      case "go":
+        return generateGoSnippet(endpoint);
       default:
         return "";
     }
@@ -160,9 +239,9 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
   const handleCopy = async (snippetId: string, content: string) => {
     try {
       await navigator.clipboard.writeText(content);
-      setCopyStates(prev => ({ ...prev, [snippetId]: true }));
+      setCopyStates((prev) => ({ ...prev, [snippetId]: true }));
       setTimeout(() => {
-        setCopyStates(prev => ({ ...prev, [snippetId]: false }));
+        setCopyStates((prev) => ({ ...prev, [snippetId]: false }));
       }, 2000);
     } catch (err) {
       console.error("Failed to copy text:", err);
@@ -171,10 +250,16 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
 
   const getLanguageExtension = (language: CodeLanguage): string => {
     switch (language) {
-      case "curl": return "bash";
-      case "nodejs": return "javascript";
-      case "python": return "python";
-      default: return "";
+      case "curl":
+        return "bash";
+      case "nodejs":
+        return "javascript";
+      case "python":
+        return "python";
+      case "go":
+        return "go";
+      default:
+        return "";
     }
   };
 
@@ -185,7 +270,8 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
           Code Snippet Generator
         </h3>
         <p className="text-sm text-slate-400 mb-4">
-          Generate ready-to-use code examples for integrating your OAuth token with {user.provider} APIs.
+          Generate ready-to-use code examples for integrating your OAuth token
+          with {user.provider} APIs.
         </p>
       </div>
 
@@ -194,13 +280,19 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
         {/* Endpoint Selection (if not provided externally) */}
         {!selectedEndpoint && endpoints.length > 0 && (
           <div className="flex-1 min-w-0">
-            <label className="block text-xs text-slate-400 mb-1">API Endpoint</label>
+            <label className="block text-xs text-slate-400 mb-1">
+              API Endpoint
+            </label>
             <select
               value={selectedEndpointLocal?.id || ""}
-              onChange={(e) => setSelectedEndpointLocal(endpoints.find(ep => ep.id === e.target.value) || null)}
+              onChange={(e) =>
+                setSelectedEndpointLocal(
+                  endpoints.find((ep) => ep.id === e.target.value) || null,
+                )
+              }
               className="w-full text-sm px-3 py-2 bg-slate-800 border border-slate-600 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-500 text-slate-200"
             >
-              {endpoints.map(endpoint => (
+              {endpoints.map((endpoint) => (
                 <option key={endpoint.id} value={endpoint.id}>
                   {endpoint.name} ({endpoint.method})
                 </option>
@@ -213,7 +305,7 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
         <div>
           <label className="block text-xs text-slate-400 mb-1">Language</label>
           <div className="flex bg-slate-800 border border-slate-600 rounded-md overflow-hidden">
-            {(["curl", "nodejs", "python"] as const).map((lang) => (
+            {(["curl", "nodejs", "python", "go"] as const).map((lang) => (
               <button
                 key={lang}
                 onClick={() => setSelectedLanguage(lang)}
@@ -251,18 +343,23 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
           {/* Endpoint Info */}
           <div className="p-3 bg-slate-800/50 border border-slate-600 rounded-md">
             <div className="flex items-center gap-2 mb-2">
-              <h4 className="text-sm font-medium text-slate-200">{currentEndpoint.name}</h4>
+              <h4 className="text-sm font-medium text-slate-200">
+                {currentEndpoint.name}
+              </h4>
               <span className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
                 {currentEndpoint.method}
               </span>
             </div>
-            <p className="text-xs text-slate-400 mb-2">{currentEndpoint.description}</p>
+            <p className="text-xs text-slate-400 mb-2">
+              {currentEndpoint.description}
+            </p>
             <div className="text-xs text-slate-500">
               <span className="font-medium">URL:</span> {currentEndpoint.url}
             </div>
             {currentEndpoint.requiredScopes && (
               <div className="text-xs text-slate-500">
-                <span className="font-medium">Required scopes:</span> {currentEndpoint.requiredScopes.join(", ")}
+                <span className="font-medium">Required scopes:</span>{" "}
+                {currentEndpoint.requiredScopes.join(", ")}
               </div>
             )}
           </div>
@@ -272,14 +369,24 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-slate-200">
-                  {selectedLanguage === "nodejs" ? "Node.js" : selectedLanguage.toUpperCase()} Example
+                  {selectedLanguage === "nodejs"
+                    ? "Node.js"
+                    : selectedLanguage === "go"
+                      ? "Go"
+                      : selectedLanguage.toUpperCase()}{" "}
+                  Example
                 </span>
                 <span className="text-xs text-slate-500">
                   ({getLanguageExtension(selectedLanguage)})
                 </span>
               </div>
               <button
-                onClick={() => handleCopy(`${currentEndpoint.id}-${selectedLanguage}`, generateSnippet(currentEndpoint, selectedLanguage))}
+                onClick={() =>
+                  handleCopy(
+                    `${currentEndpoint.id}-${selectedLanguage}`,
+                    generateSnippet(currentEndpoint, selectedLanguage),
+                  )
+                }
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-slate-700/50 border border-slate-600 rounded-md text-slate-300 hover:bg-slate-700 transition-colors"
               >
                 {copyStates[`${currentEndpoint.id}-${selectedLanguage}`] ? (
@@ -298,7 +405,9 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
 
             <div className="bg-slate-900 border border-slate-700 rounded-md overflow-hidden">
               <pre className="p-4 text-xs text-slate-200 overflow-x-auto">
-                <code className={`language-${getLanguageExtension(selectedLanguage)}`}>
+                <code
+                  className={`language-${getLanguageExtension(selectedLanguage)}`}
+                >
                   {generateSnippet(currentEndpoint, selectedLanguage)}
                 </code>
               </pre>
@@ -307,16 +416,43 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
 
           {/* Usage Notes */}
           <div className="p-3 bg-blue-900/20 border border-blue-500/30 rounded-md">
-            <h5 className="text-xs font-medium text-blue-300 mb-2">💡 Usage Notes</h5>
+            <h5 className="text-xs font-medium text-blue-300 mb-2">
+              💡 Usage Notes
+            </h5>
             <ul className="text-xs text-blue-200 space-y-1">
-              <li>• Replace the access token with your actual token when using</li>
-              <li>• Modify request data as needed for POST/PUT/PATCH requests</li>
+              <li>
+                • Replace the access token with your actual token when using
+              </li>
+              <li>
+                • Modify request data as needed for POST/PUT/PATCH requests
+              </li>
               <li>• Add proper error handling for production use</li>
               {selectedLanguage === "python" && (
-                <li>• Install requests library: <code className="bg-slate-800 px-1 rounded">pip install requests</code></li>
+                <li>
+                  • Install requests library:{" "}
+                  <code className="bg-slate-800 px-1 rounded">
+                    pip install requests
+                  </code>
+                </li>
+              )}
+              {selectedLanguage === "go" && (
+                <>
+                  <li>
+                    • Run with:{" "}
+                    <code className="bg-slate-800 px-1 rounded">
+                      go run main.go
+                    </code>
+                  </li>
+                  <li>
+                    • No external dependencies required (uses standard library)
+                  </li>
+                </>
               )}
               {currentEndpoint.requiredScopes && (
-                <li>• Ensure your token has the required scopes: {currentEndpoint.requiredScopes.join(", ")}</li>
+                <li>
+                  • Ensure your token has the required scopes:{" "}
+                  {currentEndpoint.requiredScopes.join(", ")}
+                </li>
               )}
             </ul>
           </div>
@@ -325,7 +461,9 @@ const CodeSnippetGenerator: React.FC<CodeSnippetGeneratorProps> = ({
 
       {(!currentEndpoint || endpoints.length === 0) && (
         <div className="p-8 border border-slate-700 rounded-md bg-slate-800/30 text-center">
-          <p className="text-slate-500">No API endpoints available for code generation</p>
+          <p className="text-slate-500">
+            No API endpoints available for code generation
+          </p>
         </div>
       )}
     </div>

@@ -854,11 +854,11 @@ const App: React.FC = () => {
   const createSampleTokenDemo = () => {
     // Check if we already have a Google user, create GitHub instead
     const isCurrentlyGoogle = user?.provider === "google";
-    
+
     if (isCurrentlyGoogle) {
       // Create GitHub demo user
       const sampleAccessToken = "ghp_1234567890abcdefghijklmnopqrstuvwxyz12"; // GitHub PAT format
-      
+
       const sampleUser: AppUser = {
         provider: "github",
         avatarUrl: "https://avatars.githubusercontent.com/u/12345?v=4",
@@ -884,7 +884,7 @@ const App: React.FC = () => {
           location: "San Francisco, CA",
           company: "GitHub",
           blog: "https://demo.github.io",
-          twitter_username: "demo"
+          twitter_username: "demo",
         },
         accessToken: sampleAccessToken,
         scopes: ["read:user", "user:email", "public_repo", "repo"],

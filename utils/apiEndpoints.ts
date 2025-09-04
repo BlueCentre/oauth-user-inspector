@@ -1,7 +1,9 @@
 import type { AppUser, ApiEndpoint } from "../types";
 
 // Define common API endpoints for each provider
-export const getProviderEndpoints = (provider: AppUser["provider"]): ApiEndpoint[] => {
+export const getProviderEndpoints = (
+  provider: AppUser["provider"],
+): ApiEndpoint[] => {
   switch (provider) {
     case "github":
       return [
