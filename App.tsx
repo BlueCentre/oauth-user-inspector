@@ -974,15 +974,15 @@ const App: React.FC = () => {
         </div>
       </header>
       <main className="flex-1 w-full py-8">
-        {error && (
-          <EnhancedErrorDisplay
-            error={error}
-            onDiagnose={runDiagnostics}
-            onDismiss={() => setError(null)}
-            diagnostics={diagnostics}
-          />
-        )}
         <div className="mx-auto max-w-4xl px-4">
+          {error && (
+            <EnhancedErrorDisplay
+              error={error}
+              onDiagnose={runDiagnostics}
+              onDismiss={() => setError(null)}
+              diagnostics={diagnostics}
+            />
+          )}
           <div className="mx-auto max-w-4xl">{renderContent()}</div>
         </div>
       </main>
