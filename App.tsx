@@ -431,7 +431,7 @@ const App: React.FC = () => {
             setIsLoading(false);
             return;
           }
-          
+
           throw new Error(
             data.error ||
               data.message ||

@@ -26,9 +26,7 @@ const EnhancedErrorDisplay: React.FC<EnhancedErrorDisplayProps> = ({
     >
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
-          <p className="font-bold">
-            {enhancedError?.guide?.title || "Error"}
-          </p>
+          <p className="font-bold">{enhancedError?.guide?.title || "Error"}</p>
           <p>{errorMessage}</p>
         </div>
         <div className="flex gap-2 shrink-0">
@@ -51,8 +49,12 @@ const EnhancedErrorDisplay: React.FC<EnhancedErrorDisplayProps> = ({
       {enhancedError?.guide && (
         <div className="space-y-3 pt-2 border-t border-red-500/20">
           <div>
-            <h4 className="font-semibold text-red-200 mb-1">What this means:</h4>
-            <p className="text-sm text-red-300/90">{enhancedError.guide.description}</p>
+            <h4 className="font-semibold text-red-200 mb-1">
+              What this means:
+            </h4>
+            <p className="text-sm text-red-300/90">
+              {enhancedError.guide.description}
+            </p>
           </div>
 
           <div>
@@ -91,7 +93,9 @@ const EnhancedErrorDisplay: React.FC<EnhancedErrorDisplayProps> = ({
 
       {diagnostics && (
         <div className="pt-2 border-t border-red-500/20">
-          <h4 className="font-semibold text-red-200 mb-1">Diagnostic Information:</h4>
+          <h4 className="font-semibold text-red-200 mb-1">
+            Diagnostic Information:
+          </h4>
           <p className="text-xs text-red-200/80 font-mono bg-red-950/40 p-2 rounded border border-red-600/30">
             {diagnostics}
           </p>

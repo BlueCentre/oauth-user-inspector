@@ -305,8 +305,12 @@ app.post("/api/oauth/token", async (req: Request, res: Response) => {
       }
 
       // Use enhanced error detection to provide better troubleshooting guidance
-      const enhancedError = enhanceOAuthError(responseText, tokenResponse.status, provider);
-      
+      const enhancedError = enhanceOAuthError(
+        responseText,
+        tokenResponse.status,
+        provider,
+      );
+
       reqLogger.info("Enhanced OAuth error detected", {
         provider,
         errorCode: enhancedError.errorCode,
@@ -493,8 +497,12 @@ app.post("/api/oauth/refresh", async (req: Request, res: Response) => {
       });
 
       // Use enhanced error detection to provide better troubleshooting guidance
-      const enhancedError = enhanceOAuthError(responseText, refreshResponse.status, provider);
-      
+      const enhancedError = enhanceOAuthError(
+        responseText,
+        refreshResponse.status,
+        provider,
+      );
+
       reqLogger.info("Enhanced OAuth refresh error detected", {
         provider,
         errorCode: enhancedError.errorCode,
