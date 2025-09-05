@@ -10,8 +10,13 @@ The frontend is a React application built with Vite and styled with Tailwind CSS
 
 ```
 .
-├─ App.tsx, index.tsx, index.html, index.css    # Frontend entry and assets
-├─ components/                                   # Frontend components
+├─ frontend/                                     # All frontend source
+│  ├─ App.tsx, index.tsx, index.html, index.css # Frontend entry and assets
+│  ├─ components/                                # React components
+│  ├─ utils/                                     # Frontend utilities
+│  ├─ types.ts, fieldDocs.ts                    # Type definitions and field docs
+│  ├─ vite.config.ts, tsconfig.json             # Frontend build configs
+│  └─ tailwind.config.js, postcss.config.js     # Styling configs
 ├─ server/                                       # All backend (Express) source
 │  ├─ server.ts                                  # Express app
 │  ├─ logger.ts                                  # Logging setup
@@ -22,7 +27,7 @@ The frontend is a React application built with Vite and styled with Tailwind CSS
 ├─ dist-server/                                  # Compiled backend (tsc)
 ├─ Dockerfile                                    # Container build
 ├─ scripts/                                      # Helper scripts (deploy, setup)
-└─ vite.config.ts, tsconfig.json                 # Frontend tooling configs
+└─ tsconfig.json                                 # Root TypeScript config with project refs
 ```
 
 ## Building and Running

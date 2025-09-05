@@ -57,12 +57,14 @@ The `Dockerfile` copies `server/` rather than individual backend files. Cloud Bu
 ## Notes for Agents/Copilots
 
 - Place all backend code under `server/`. Do not add new backend files at repository root.
+- Place all frontend code under `frontend/`. Frontend components, types, utilities, and configs all live there.
 - Update `server/tsconfig.server.json` when adding new server entry points or directories.
 - Tests for the backend should go in `server/__tests__/` and use Jest + ts-jest.
-- Frontend aliases use `@` -> project root; server code should use relative imports within `server/`.
+- Frontend aliases use `@` -> `frontend/` directory; server code should use relative imports within `server/`.
 - Dev script assumptions:
   - `npm run dev` expects to find `server/server.ts` and `server/logger.ts` for nodemon watch.
   - Compiled output must be `dist-server/server.js`.
+  - Frontend builds to root `dist/` directory from `frontend/` source.
 
 ## Development Conventions
 
