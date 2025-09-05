@@ -42,19 +42,22 @@ This application demonstrates OAuth token lifecycle best practices including:
 
 ```
 .
-├─ App.tsx, index.tsx, index.html, index.css    # Frontend entry and assets
-├─ components/                                   # Frontend components
-├─ server/                                       # All backend (Express) source
-│  ├─ server.ts                                  # Express app
-│  ├─ logger.ts                                  # Logging setup
-│  ├─ tsconfig.server.json                       # Server TypeScript config
-│  ├─ types/express.d.ts                         # Express request typings
-│  └─ __tests__/server.test.ts                   # Server tests (Jest + ts-jest)
-├─ dist/                                         # Built frontend (vite build)
-├─ dist-server/                                  # Compiled backend (tsc)
-├─ Dockerfile                                    # Container build
-├─ scripts/                                      # Helper scripts (deploy, setup)
-└─ vite.config.ts, tsconfig.json                 # Frontend tooling configs
+├─ frontend/                                       # Frontend source (React + Vite)
+│  ├─ App.tsx, index.tsx, index.html, index.css   # Frontend entry and assets
+│  ├─ components/                                  # React UI components
+│  ├─ utils/                                       # Frontend utilities
+│  ├─ types.ts                                     # Frontend type definitions
+│  └─ vite.config.ts, tsconfig.json               # Frontend tooling configs
+├─ server/                                         # All backend (Express) source
+│  ├─ server.ts                                    # Express app
+│  ├─ logger.ts                                    # Logging setup
+│  ├─ tsconfig.server.json                         # Server TypeScript config
+│  ├─ types/express.d.ts                           # Express request typings
+│  └─ __tests__/server.test.ts                     # Server tests (Jest + ts-jest)
+├─ dist/                                           # Built frontend (vite build)
+├─ dist-server/                                    # Compiled backend (tsc)
+├─ Dockerfile                                      # Container build
+└─ scripts/                                        # Helper scripts (deploy, setup)
 ```
 
 ## Building and Running
