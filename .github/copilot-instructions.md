@@ -54,8 +54,18 @@ The following are outputs from frequently run commands. Reference them instead o
 .
 ├── README.md                 # Project documentation
 ├── package.json              # Node.js dependencies and scripts
-├── App.tsx                   # Main React application component
-├── components/               # React UI components
+├── frontend/                 # Frontend source (React + Vite)
+│   ├── App.tsx               # Main React application component
+│   ├── components/           # React UI components
+│   ├── utils/                # Frontend utilities
+│   ├── types.ts              # Frontend type definitions
+│   ├── index.tsx             # React entry point
+│   ├── index.html            # HTML template
+│   ├── index.css             # Styles
+│   ├── vite.config.ts        # Vite configuration
+│   ├── tsconfig.json         # Frontend TypeScript config
+│   ├── tailwind.config.js    # Tailwind CSS config
+│   └── postcss.config.js     # PostCSS config
 ├── server/                   # All backend (Express) source
 │   ├── server.ts             # Express backend server
 │   ├── logger.ts             # Winston logging configuration
@@ -75,10 +85,10 @@ The following are outputs from frequently run commands. Reference them instead o
 ```json
 {
   "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:server\"",
-  "dev:frontend": "vite",
+  "dev:frontend": "cd frontend && vite",
   "dev:server": "nodemon --watch server/server.ts --watch server/logger.ts --ext ts --exec \"npm run build:server && node dist-server/server.js\"",
   "build": "npm run build:frontend && npm run build:server",
-  "build:frontend": "vite build",
+  "build:frontend": "cd frontend && vite build",
   "build:server": "tsc -p server/tsconfig.server.json",
   "start": "GOOGLE_CLOUD_PROJECT=gen-lang-client-0352693779 node dist-server/server.js",
   "test": "jest",
@@ -98,7 +108,7 @@ The following are outputs from frequently run commands. Reference them instead o
 
 ### Important File Locations
 
-**Frontend Components** (`/components/`):
+**Frontend Components** (`frontend/components/`):
 
 - `LoginScreen.tsx` - Main OAuth provider selection interface
 - `UserInfoDisplay.tsx` - Display user data after authentication
@@ -115,11 +125,11 @@ The following are outputs from frequently run commands. Reference them instead o
 
 **Configuration Files**:
 
-- `tsconfig.json` - Frontend TypeScript configuration
+- `frontend/tsconfig.json` - Frontend TypeScript configuration
 - `server/tsconfig.server.json` - Backend TypeScript configuration
-- `vite.config.ts` - Vite bundler configuration with proxy setup
+- `frontend/vite.config.ts` - Vite bundler configuration with proxy setup
 - `jest.config.cjs` - Jest testing framework configuration
-- `tailwind.config.js` - Tailwind CSS styling configuration
+- `frontend/tailwind.config.js` - Tailwind CSS styling configuration
 
 ### API Endpoints
 
@@ -131,7 +141,7 @@ The following are outputs from frequently run commands. Reference them instead o
 
 **Making Frontend Changes**:
 
-1. Edit files in `/components/`, `App.tsx`, or `types.ts`
+1. Edit files in `frontend/components/`, `frontend/App.tsx`, or `frontend/types.ts`
 2. Vite hot reload automatically updates the browser
 3. Test in browser at http://localhost:5173/
 4. Run `npx prettier --write .` before committing
