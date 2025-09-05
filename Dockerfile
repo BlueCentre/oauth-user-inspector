@@ -12,18 +12,9 @@ RUN npm ci
 
 # Copy only necessary source files to avoid conflicts
 COPY package.json package-lock.json ./
-COPY App.tsx index.tsx index.css index.html ./
-COPY components/ ./components/
-COPY utils/ ./utils/
-COPY types.ts ./
-# Frontend types dir (if any) is optional; server types moved under server/
-# COPY types/ ./types/
+COPY frontend/ ./frontend/
 COPY server/ ./server/
-COPY fieldDocs.ts ./
 COPY tsconfig.json ./
-COPY vite.config.ts ./
-COPY postcss.config.js ./
-COPY tailwind.config.js ./
 
 # Build the application
 RUN npm run build
@@ -31,7 +22,7 @@ RUN npm run build
 # Show what we built
 RUN echo "=== BUILT FILES ===" && ls -la dist/ && echo "" && echo "Built index.html content:" && cat dist/index.html
 RUN echo "" && echo "=== FULL DIRECTORY LISTING ===" && find . -name "index.html"
-RUN echo "" && echo "=== ORIGINAL FILES ===" && echo "Original index.html content:" && cat index.html
+RUN echo "" && echo "=== ORIGINAL FILES ===" && echo "Original index.html content:" && cat frontend/index.html
 
 # COMPLETELY REPLACE the root index.html with the built version
 RUN rm -f index.html && cp dist/index.html index.html
