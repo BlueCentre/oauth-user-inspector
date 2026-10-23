@@ -130,6 +130,12 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
   const tableEntries = useMemo(() => {
     const raw: Record<string, any> = user.rawData as any;
 
+    // Get primitive fields from current data once to be reused
+    const primitiveKeys = Object.keys(raw).filter((k) => {
+      const v = raw[k];
+      return v === null || ["string", "number", "boolean"].includes(typeof v);
+    });
+
     // Get all potential fields for this provider when showAllFields is enabled
     let fieldsToShow: string[];
 
@@ -137,12 +143,6 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       // Get all documented fields for this provider
       const allFieldDocs = getAllFieldDocs(user.provider);
       const allDocumentedFields = Object.keys(allFieldDocs);
-
-      // Get primitive fields from current data
-      const primitiveKeys = Object.keys(raw).filter((k) => {
-        const v = raw[k];
-        return v === null || ["string", "number", "boolean"].includes(typeof v);
-      });
 
       // Combine both sets, preferring documented fields
       const combinedFields = new Set([
@@ -152,10 +152,7 @@ const UserInfoDisplay: React.FC<UserInfoDisplayProps> = ({
       fieldsToShow = Array.from(combinedFields);
     } else {
       // Original behavior: only show primitive fields that exist in data
-      fieldsToShow = Object.keys(raw).filter((k) => {
-        const v = raw[k];
-        return v === null || ["string", "number", "boolean"].includes(typeof v);
-      });
+      fieldsToShow = primitiveKeys;
     }
 
     // Preferred ordering for common GitHub fields
